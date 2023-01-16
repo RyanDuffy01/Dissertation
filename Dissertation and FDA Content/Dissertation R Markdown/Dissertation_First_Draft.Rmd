@@ -2,7 +2,7 @@
 title: "Dissertation First Draft"
 author: '190005680'
 date: '2022-10-10'
-bibliography: C:/Users/ryand/Documents/Dissertation/FDA-Dissertation/Dissertation R Markdown/bibliography.bib
+bibliography: C:/Users/ryand/Documents/Dissertation/Dissertation and FDA Content/Dissertation R Markdown/bibliography.bib
 output: 
   bookdown::pdf_document2:
     toc: no
@@ -49,11 +49,11 @@ To answer this question let's first think about what type of data a statistician
 
 In this data matrix the first entry given in the top left represents patient 1's blood pressure reading (in mmHg) on day 1 after taking the drug, the entry directly below represents patients 1's blood pressure reading on day 2 and so on. 
 
-Now consider a scenario where the number of times a patient can have their blood pressure read within the 4 days of the survey was increased to twice a day. If a patients blood pressure was checked twice a day then each row of the data matrix would then represent a reading taken every half day which would make the dimensions of the new data matrix $3 \times 8$. A statistician would be in favour of this increase in information as having access to more regular blood pressure readings would allow the statistician to strengthen their inferences about the effects the drug has on a patients blood pressure. The statistician would, however, be quick to point out that this increase would lead to their analysis taking longer as more computational power is required to make inferences from this larger data set.  In today's modern era of technology it is becoming increasingly easier for machines to take measurements of various quantities at smaller and smaller increments of time. This leads to the production of massive data sets which can be difficult for even the most complex of computers to analyse. The field of functional data analysis seeks to address this issue. 
+Now consider a scenario where the number of times a patient can have their blood pressure read within the 4 days of the survey was increased to twice a day. If a patients blood pressure was checked twice a day then each row of the data matrix would then represent a reading taken every half day which would make the dimensions of the new data matrix $3 \times 8$. A statistician would be in favour of this increase in information as having access to more regular blood pressure readings would allow the statistician to strengthen their inferences about the effects the drug has on a patients blood pressure. However, the statistician would be quick to point out that this increase would lead to their analysis taking longer as more computational power is required to make inferences from this larger data set.  In today's modern era of technology it is becoming increasingly easier for machines to take measurements of various quantities at smaller and smaller increments of time. This leads to the production of massive data sets which can be difficult for even the most complex of computers to analyse. The field of functional data analysis seeks to address this issue. 
 
-Returning to the previous example imagine that a persons blood pressure could be taken at any time the statistician requested such that any time within the survey period of 4 days was accessible. This would not be practically achievable as the statistician may ask to have the persons blood pressure read multiple times within the same minute for example. However, if the relationship between time and a patients blood pressure was able to be  given by a function with which the statistician could input a point in time within the 4 days and the patients blood pressure would be output then the statistician could do this. Following from this, the statisticians sample would now no longer consist of blood pressure readings at various times for each patient. It would instead consist of 3 functions, one for each patient, which give the relationship each patients blood pressure has with the time since the drug was taken. Assuming that such a function could be found, that would mean that if the observed values given in the data matrix shown in \@ref(eq:datamatex) were free from error they would simply be draws from this set of functions for each patient. Assuming these functions could be found we could then consider these functions to be the statisticians new sample of observations which  changes the statisticians sample from consisting of data points to instead being a sample of functions. This new sample of functions is called functional data.
+Returning to the previous example, now consider a scenario where a persons blood pressure could be taken at any time the statistician requested such that any time within the survey period of 4 days was accessible. This would not be practically achievable as the statistician may ask to have the persons blood pressure read multiple times within the same minute for example. However, if the relationship between time and a patients blood pressure was able to be given by a function with which the statistician could input a point in time within the 4 days and the patients blood pressure would be returned then the statistician could do this. If such a function existed for every patient then the statistician may prefer to be able to conduct his analysis on these functions, not on individual blood pressure readings found using this function. The statistician could now consider their sample to no longer consist of blood pressure readings at various times for each patient. It would instead consist of 3 functions, one for each patient, which give the relationship each that patients blood pressure has with the time since the drug was taken. Assuming a function could be found for each patient, that would mean that if the observed values given in the data matrix shown in \@ref(eq:datamatex) were free from error they would simply be draws from this set of functions for each patient. This new sample, consisting of functions, as opposed to singular observations at various times for each patient, is a sample of functional data. 
 
-This change can also be thought of as expanding the data matrix to now be infinitely dimensional e.g. every point in an infinetly discretised sample of continuous time has an associated row in the data matrix. This expansion makes some theoretical sense as a function is a 1-1 mapping of points in the domain of the function (the input values) to values in the range of the function (the values output by the function). This clearly makes little practical sense as storing infinitely dimensional data matrices is impossible. However, thinking of our samples this way does show some of the advantages that functional data analysis holds over other more conventional forms of data analysis. 
+This change can be alternatively conceptualised as expanding the data matrix in \@ref(eq:datamatex) to be infinitely dimensional e.g. every point point in time (of which there are infinite) has an associated row in the data matrix. This conceptualisation can sometimes be easier to understand as a function is a 1-1 mapping of points in the domain of the function (the input values) to values in the range of the function (the values output by the function). However, it clearly makes little practical sense as storing infinitely dimensional data matrices is impossible. Thinking of our samples this way does show some of the advantages that functional data analysis holds over other, more conventional, forms of data analysis. 
 
 
 # Advantages of Functional Data 
@@ -288,7 +288,7 @@ We now have our set of functions with which we will estimate our function $f_1(t
 
 ## Finding Coefficients
 
-Throughout the previous sections the process of smoothing has been repeatedly mentioned. Smoothing a data set refers to the process of approximating a function from that data set that gives the general trend of the variable of interest over a certain parameter, while excluding errors in measurement. In this case, the parameter a variable is changing over is typically time, however other parameters are sometimes used, e.g. angles. Interpolation has a similar definition however interpolation assumes that there is error in the observations and so the function estimated passes through every point in the data. 
+Throughout the previous sections the process of smoothing has been repeatedly mentioned. Smoothing a data set refers to the process of approximating a function from that data set that gives the general trend of the variable of interest over a certain parameter, while excluding errors in measurement. In this case, the parameter a variable is changing over is typically time, however other parameters are sometimes used, e.g. angles. Smoothing is similiar to interpolation definition however interpolation assumes that there is no error or noise in the observations and so the function estimated passes through every point in the data whereas smoothing assumes there are errors in the observations. 
 
 We have already stated in Equation \@ref(eq:functionobservedrelationship) that we assume that each observed value within our non-functional data has some error associated with it so we wish to use smoothing techniques to estimate our curves. This section will introduce smoothing two techniques which helps us estimate the coefficients of our basis functions which give the best estimate of our function $f_1(t)$. These techniques will also be used more generally throughout the dissertation to estimate functions when we do not have access to the function which describes a relationship between a variable and time. All methods discussed in the [Finding Coefficients] section can be applied for any choice of basis function, even choices not mentioned within this dissertation.
 
@@ -339,29 +339,28 @@ eval.basis(ex_1_data$Time,basis_ex_1)
 Minimising our SSE function may seem quite difficult. This is a multivariate optimisation problem where there are many covariates to optimise. Taking our example as a case study, the number of coefficients we have to estimate is 81 as we have 81 basis functions and these coefficients can take any number in the real number line.  
 
 
-However this optimisation problem is deceptively easy. In typical non-functional regression analysis the sum of squared errors of the residuals are alos minimised to get regression coefficients. In the case of estimating our coefficients we can treat our $\boldsymbol{\phi}$ matrix similarly to the way one would treat a design matrix, $\boldsymbol{X}$ in a non-functional regression problem. 
-
-
-The SSE of the errors, as a function of the coefficients of the coefficients of the regression parameters, is given in Equation \@ref(eq:SSEregression).  
+This optimisation problem is not as difficult as it may appear. In typical non-functional regression analysis the sum of squared errors of the residuals is minimised to get regression coefficients. The SSE, as a function of the coefficients of the regression parameters, for non-functional regression analysis is given in Equation \@ref(eq:SSEregression).  
 
 \begin{equation}
   SSE(\boldsymbol{c}) = \sum_{j=1}^n{[Y_j-\boldsymbol{X'c}]^2} \\
   (\#eq:SSEregression)
 \end{equation}
 
-
-The estimate of $\boldsymbol{c}$ that minimizes this SSE is given by:
+This is very similiar to the SSE we are trying to estimate. The only difference is that in the SSE we are trying to minimise the $\boldsymbol{\phi}$ matrix takes the place of the design matrix, $\boldsymbol{X}$. The estimate of $\boldsymbol{c}$ that minimizes the SSE for non-functional regression analysis is given below in Equation \@ref(eq:BoldCest). 
 
 \begin{equation}
-  \boldsymbol{\hat{c}} = (\boldsymbol{X'X})^{-1}\boldsymbol{X}'\boldsymbol{Y}
+  \boldsymbol{\hat{c}} = (\boldsymbol{X'X})^{-1}\boldsymbol{X}'\boldsymbol{Y}\\
+  (\#eq:BoldCest)
 \end{equation}
 
-When minimizing the SSE for finding the functional coefficients we can simply exchange our design matrix, $\boldsymbol{X}$, with our basis matrix, $\boldsymbol{\phi}$, to get the estimate of the coefficient vector, $\boldsymbol{\hat{c}}$, given in Equation \@ref(eq:estimateofCregression). This vector of coefficients is the vector of coefficients then used to estimate the function. 
+When minimizing the SSE for finding the functional coefficients we can simply exchange the design matrix, $\boldsymbol{X}$, with our basis matrix, $\boldsymbol{\phi}$, to get the estimate of the coefficient vector, $\boldsymbol{\hat{c}}$, given in Equation \@ref(eq:estimateofCregression). This vector of coefficients is the vector of coefficients then used to estimate the function. 
 
 \begin{equation}
   \boldsymbol{\hat{c}} = (\boldsymbol{\phi'\phi})^{-1}\boldsymbol{\phi'}\boldsymbol{Y}
   (\#eq:estimateofCregression)
 \end{equation}
+
+
 
 
 
