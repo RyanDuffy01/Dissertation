@@ -72,9 +72,11 @@ There is a clear issue with this discussion being that functional data is imposs
 
 ## How is Observed Data Related To Functional Data?
 
-As discussed previously, if a statistician wants to work with functional data they must estimate these functions from their observed data (which is collections of observations of a quantity over time for several replications). Therefore, there must be a relationship assumed between the functional data and the observed data. 
+As discussed previously, if a statistician wants to work with functional data they must estimate these functions from their observed data (These being collections of observations of a quantity over time for several replications). Therefore, there must be a relationship between the functional data and the observed data. 
 
-Within this dissertation it will be assumed that the value of the variable of interest that is observed at a certain time $t_0$ is the value of the function which describes this variables relationship with time evaluated at $t_0$ with some normally distributed error in the observation. This relationship is better given by Equation \@ref(eq:functionobservedrelationship). 
+The observations that a statistician typically has access to consist of observations of a quantity over time for several relaications and the functional data that can be derived from these observations are functions which a point in time can be input and the value of the quantity at that time for that replication is returned.A natural assumption would, therefore be that the observed value of a quantity at a specific time for a specific replication is the value that the functional data for that replication takes at the time that the observation was taken. This would imply that each observation is completely free of error as the functional data describe the  relationship between the quantity of interest and time without any error. This is not a practical assumption as there is often random noise or limitations in the devices used to measure quantities which introduces errors in the observed values.  
+
+Therefore, it is assumed that there is error in the observations. Within this dissertation, it will be assumed that the error in each observation are independent and identically distributed normal random variables with constant variance.  This relationship is given in Equation \@ref(eq:functionobservedrelationship). 
 
 
 \begin{equation}
@@ -84,21 +86,20 @@ Within this dissertation it will be assumed that the value of the variable of in
 
 where $Y_i$ is the value of the variable of interest at time $t_i$ and $\epsilon_i \sim N(0,\sigma^2)$ ($\sigma$ is a constant).
 
-The error in each observation, $\epsilon_i$'s, are assumed to be independent and identically distributed normal random variables with constant variance. This assumption is important when we wish to assess the fit of our estimated functional data to our observed data.  There are techniques which allow for the relaxation of these assumptions about the error in each observation. ________ details a method which allows the assumption of independence in errors between observations to relax and ______ details a method which allows a relaxation of normality in the errors.  
+There are techniques which allow for the relaxation of some of the assumptions made about the error in each observation. ________ details a method which allows the assumption of independence in errors between observations to relax and ______ details a method which allows a relaxation of normality in the errors.  
 
-In order to estimate a functional sample from observed data a process called smoothing must be used. A new example is established in the [Basis Functions] section which easily displays how a statistician would use this process to estimate a functional sample from a non-functional sample.
-
+In order to estimate a functional sample from observed data a process called smoothing must be used. To understand how to perform this process the concept of basis functions must be introduced.
 
 ## Basis Functions
 
-In order to give the reader an understanding of how to create a functional data object (one function which describes the relationship between a variable and time), both mathematically and in computationally in R, a new example will be used. In this example, it is assumed that the relationship between a variable and time is already known. This variable Y is related to time by the functional relationship given in Equation \@ref(eq:ex2function). This relationship is relatively simple and is expressible through typical mathematical notation (non-analytic/non-solvable). The reader should note that this will not typically be the case for relationships between variables and time. In fact, it is generally not possible to attain a simply expressible function for this relationship. 
+In order to give the reader an understanding of how to create a functional data object (one function which describes the relationship between a variable and time), both mathematically and in computationally in R, a new example will be used. In this example, it is assumed that the relationship between a variable and time is already known. This variable $Y$ is related to time by the functional relationship given in Equation \@ref(eq:ex2function). This relationship is relatively simple and is expressible through typical mathematical notation, e.g. it is analytic. The reader should note that this will not typically be the case for relationships between variables and time. In fact, it is generally not possible to attain a simply expressible function for this relationship. 
 
 \begin{equation}
    Y(t)=f_1(t)=\frac{1}{300}(t^3+t+e^{-t^2})
   (\#eq:ex2function)
 \end{equation}
 
-Throughout this example, we will conduct our smoothing process as if we do not have access to the analytical form of this function. This function will be the function we are trying to estimate with our smoothing process. It may be clear that we do not have any data to estimate this function from. We will, therefore, simulate some data which mimics the data a statistician may receive in a typical analysis and estimate our function from this data. We will assume that the assumptions established in the [How is Observed Data Related To Functional Data?] section are true for this data set. We will make the variance of the error terms, ($\epsilon_i$), $30$ as this would simulate an observation error similiar to that what would seen in a practical setting. We will simulate our time points to be evenly spaced in the region of $[-40,40]$. The R Code used to simulate this data is given below. 
+Throughout this example, the smoothing process will be conducted as if the analytical form of this function is not known. To demonstrate how the smoothing process works, data is simulated from the function which mimics the data a statistician may receive in a typical analysis. The function is then be estimated from this data using smoothing. It is assumed that the assumptions about the relationship between the functional data and observed data established in Equation \@ref(eq:functionobservedrelationship) are true for this data set when this data is generated. The variance of the error terms, ($\epsilon_i$), is made to be $30$ as this would simulate an observation error similar to that what would seen in a practical setting. The time point of the simulated data are evenly spaced in the region of $[-40,40]$. The R Code used to simulate this data is given below. 
 
 
 ```{r chap 1 ex 1 data,echo=TRUE}
@@ -133,19 +134,18 @@ ggplot(ex_1_data,aes(x=Time,y=Y))+
   geom_line(data=data.frame(Time=Time_Grid,Y=Observations),col="red")
 ```
 
-In order to estimate the original function, $f_1(t)$, from this new dataset we need to find some building blocks with which we can constuct this function from the ground up. When working with vectors, basis vectors, sets of vectors that can be linearly combined toconstruct any vectors within a defined vector space, can be thought of as the building blocks for all vectors. Similarly, basis functions can be thought of as the building blocks of all functions.
+In order to estimate the original function, $f_1(t)$, from this new dataset some mathematical building blocks are needed which we can combine in some way to construct this function. When working with vectors, basis vectors, sets of vectors that can be linearly combined to construct any vectors within a defined vector space, can be thought of as the building blocks for all vectors. Similarly, basis functions can be thought of as the building blocks of all functions.
 
-Basis functions are sets of functions which can be linearly combined to produce any function within the function space they belong to. Basis functions are very powerful tools for function estimation and are often used to estimate functions from sets of points in space. This dissertation will work with two sets of basis functions, the Fourier Basis and the B-Spline Basis which are both sets of functions which can be used to represent functions with a domain in $[t_0,t_1]$ where $t_0$ and $t_1$ are arbitary.    
+Basis functions are sets of functions which can be linearly combined to produce any function within the function space they belong to. Basis functions are very powerful tools for function estimation and are often used to estimate functions from sets of points in space. This dissertation will work with two sets of basis functions, the Fourier Basis and the B-Spline Basis which are both sets of functions, the elements of which can be linearly combined to construct functions with a domain in $[t_0,t_1]$ where $t_0$ and $t_1$ are arbitrary.    
 
-
-We have just established that a linear combination of the basis functions we will be working with can represent functions with domain in $[t_0,t_1]$. Therefore, we can represent our function $f_1$ as a linear combination of these basis functions. This expansion is shown in Equation \@ref(eq:ex1basisapprox). 
+The function $f_1$ can be expressed as a linear combination of a set of basis functions for the functional space it is contained in. This basis function expansion of $f_1$ is shown in Equation \@ref(eq:ex1basisapprox). 
 
 \begin{equation}
   Y(t) = f_1(t)\approx\sum_{k=1}^K{c_k\phi_k(t)} = \boldsymbol{c'\phi}(t) \; \;\; t \in [t_0,t_1]
   (\#eq:ex1basisapprox)
 \end{equation}
 
-where $c_k$ is the coefficient of the $k_{th}$ basis function $\phi_k(t)$ and $\{\phi_k(t):k\in\mathbb{Z}^+\}$ is a set of basis functions whose span is a set of functions with domain in $[t_0,t_1]$. This is generally true for any function that a person may attempt to estimate. 
+where $c_k$ is the coefficient of the $k_{th}$ basis function $\phi_k(t)$ and $\{\phi_k(t):k\in\mathbb{Z}^+\}$ is a set of basis functions whose span is a set of functions with domain in $[t_0,t_1]$. This expansion can be used for any function that a statistician may attempt to estimate. 
 
 $\boldsymbol{\phi}(t)$ is a vector of the basis functions used to construct $f_1(t)$ evaluated at time $t$ and $\boldsymbol{c}$ is a vector of coefficients for each of these basis functions. 
 
@@ -201,14 +201,7 @@ The final parameter passed to this function gives the period of the basis system
 Some examples of periodic data are air temperature over the course of a few days, as the temperature may follow similar trends each day (so period $T=1\; day$ ) or the angle a lever is in relation to being upright over time (The fourier basis is often used to estimate functions from data related to angles). \par
 
 
-We now move onto defining the B-Spline basis system which is used to estimate functions from data which is not periodic in nature. 
-
-
-```{r} 
-#Mawma This is Where You are At
-```
-
-
+The Fourier Basis can be used to construct functions which are periodic. The B-Spline basis system is used to estimate functions from data which is not periodic in nature. 
 
 
 ### The B-Spline Basis 
