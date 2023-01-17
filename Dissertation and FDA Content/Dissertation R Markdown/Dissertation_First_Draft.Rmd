@@ -7,7 +7,7 @@ output:
   bookdown::pdf_document2:
     toc: no
     toc_float: FALSE
-    toc_depth: 4
+    toc_depth: 5
 
 ---
 
@@ -385,41 +385,41 @@ It can be seen from Figure \@ref(fig:plotfitex1) that this method of finding the
 
 ### Smoothing using a Roughness Penalty
 
-The generally preferred method of finding the coefficients for a functional data object is smoothing using a roughness penalty. This method is similar to that used in smoothing using regression analysis in that it uses a the sum of squared errors. However, this method adds a roughness penalty to this sum of squared errors in order to stop the functional data object from over fitting to the data. This sum of squared errors with this new roughness penalty term is shown in Equation .
+The generally preferred method of finding the coefficients for a functional data object is smoothing using a roughness penalty. This method is similar to that used in smoothing using regression analysis in that it uses a the sum of squared errors. However, this method adds a roughness penalty to this sum of squared errors in order to stop the functional data object from over fitting to the data. The sum of squared errors with the new roughness penalty term, denoted by $F(\boldsymbol{c})$, is shown in Equation \@ref(eq:defofF).
 
+\begin{equation}
+  F(f)=\sum_j[Y_j-f(t_j)]^2+\lambda\int_{t_0}^{t_1}[Lf(t)]^2dt
+  (\#eq:defofF)
+\end{equation}
 
-$$
-F(\boldsymbol{c})=\sum_j[y_j-x(t_j)]^2+\lambda\int_{t_0}^{t_1}[Lx(t)]^2dt
-$$
+where $f(t)$ is the estimated function evaluated at $t$, $L$ is a linear differential operator (which will be discussed in the next section), $\lambda$ is known as the smoothing parameter and $t\in [t_0,t_1]$.\par
 
-where $L$ is a linear differential operator (which will be discussed in the next section), $\lambda$ is known as the smoothing parameter and $t\in [t_0,t_1]$.\par
+This can be rewritten using the vector expansion $f(t)=\boldsymbol{c'\phi(t)}$  given in Equation \@ref(eq:ex1basisapprox) to get Equation \@ref(eq:defofFexpand).
 
-This can be rewritten using the vector expansion $x(t)=\boldsymbol{c'\phi(t)}$ to get Equation
+\begin{equation}
+  F(\boldsymbol{c})=\sum_j[Y_j-\boldsymbol{c'\phi}(t_j)]^2+\lambda\boldsymbol{c'}[\int_{t_0}^{t_1}L\boldsymbol{\phi}(t)L\boldsymbol{\phi}'(t)dt]\boldsymbol{c}
+  (\#eq:defofFexpand)
+\end{equation}
 
-$$
-F(\boldsymbol{c})=\sum_j[y_j-\boldsymbol{c'\phi}(t_j)]^2+\lambda\boldsymbol{c'}\boldsymbol{c}\int_{t_0}^{t_1}[L\boldsymbol{\phi}(t)L\boldsymbol{\phi}'(t)]dt
-$$
+There are two unknowns in $F(\boldsymbol{c})$ those being the linear differential operator $L$ and the smoothing parameter $\lambda$ and these are chosen based on what features we wish our estimate of the function to have.  
 
-There are two unknowns in $F(\boldsymbol{c})$ those being our linear differential operator $L$ and our smoothing parameter $\lambda$ and these are chosen based on what features we wish our functional data object to have. 
+#### Choosing an Appropriate Linear Differential Operator
 
-#### Choosing an Appropriate Linear Diffferential Operator
-
-
-
+Remembering that the most desirable set of coefficients, $\boldsymbol{c}$, will minimise $F(\boldsymbol{c})$, the linear differential operator penalises a function depending on how close to 0 a certain linear differential operator of the estimated function is to 0 across all time points. This is a way of eliminating a level of roughness in the estimated function. Typically it is useful to choose the linear differential operator, $L$, to be a simple derivative. The general rule is to use the derivative that is 2 higher than the derivative of the function that is to be used in analysis. Throughout this dissertation, no derivatives of the function will be used and so the linear differential operator is chosen to be the second derivative, $D^2$. This is because it is generally agreed that a straight line has no roughness, e.g. it only changes in one direction on the axis, and the second derivative of a straight line is 0. If the second derivative of a function is to be used it would be desirable for the second derivative of the function to be similarly smooth and this is why the derivative of two orders higher is used, e.g. the 4th derivative. 
 
 
 #### Choosing an Appropriate Smoothing Parameter $\lambda$
 
-The generalized cross-validation (GCV) cruteria was developed by Craven P. and G. Wahba to assist in finding the most appropriate value of $\lambda$ to use in smoothing using a roughness penalty. \par 
+The generalized cross-validation (GCV) criteria was developed by Craven P. and G. Wahba (@GCV_ref) to assist in finding the most appropriate value of $\lambda$ to use in smoothing using a roughness penalty. The need for this is clear as choosing a $\lambda$ close to $0$ means that $F(\boldsymbol{c})$ becomes the SSE used to find the coefficient for regression smoothing without a roughness penalty however if the $\lambda$ chosen is too large the estimated function will approach a straight line.  \par 
 
-The GCV for a particular functional data object is defined as shown in Equation \@ref(eq:GCV) :
+The GCV for choosing the smoothing parameter $\lambda$ is defined as shown in Equation \@ref(eq:GCV) :
 
 \begin{equation}
   GCV(\lambda)=(\frac{n}{n-df(\lambda)})(\frac{SSE}{n-df(\lambda)})
   (\#eq:GCV)
 \end{equation}
 
-where the SSE is defined as in Equation \@ref(eq:SSE), the degrees of freedom for a particular functional data object are defined as the trace of the $\boldsymbol{H}$ defined in the previous section and $n$ is the number of observations e.g the length of the vector $\boldsymbol{y}$ \par
+where the SSE is defined as in the [Regression Smoothing] section, the degrees of freedom for a particular functional data object are defined as the trace of the matrix $\boldsymbol{H}$ which is defined in the next paragraph and $n$ is the number of observations in the non-functional data used to estimate the function. \par
 
 The value of $\lambda$ that gives the lowest GCV is the most preferable. The GCV produced by a certain value of $\lambda$ can be found by accessing the GCV argument of a functional data object in R. An example of how to do this for our example is shown below. 
 
