@@ -206,7 +206,7 @@ The Fourier Basis can be used to construct functions which are periodic. The B-S
 
 ### The B-Spline Basis 
 
-The B-Spline basis system are sets of piece-wise polynomial functions, defined by the range that they are defined over, which will be referred to as $[a,b]$ where $a,b\in\mathbb{R}$, their knots and break points and their order (which will be referred to as $n$). A set of B-Spline functions which define a basis can be linearly combined to give any spline function of the same degree (which is $n-1$). A spline function is a piece-wise polynomial functions which is defined over a constrained domain $[a,b]$ that takes values within the real numbers. The most important aspect of spline functions for estimating functions from observed data is that these functions can be combined to give any smooth curve, within $[a,b]$, that is differentiable $n-1$ times. For example, a spline of order 2 , e.g. $n=2$, is only differentiable once and, therefore, spline functions of order 2 will be functions that are made up of piecewise straight line segments. Therefore, a set of order 2 B-Spline basis functions, defined on $[a,b]$,  can be linearly combined to give any function which is made up of piecewise straight line segments. For a detailed explanation of how B-Splines are defined see the [Appendix] Section of this dissertation. We can use these sets of B-Spline basis function similarly to the sets of Fourier basis functions to estimate functions from our observed data using the result given in Equation \@ref(eq:ex1basisapprox). 
+A B-Spline basis system is a sets of piece-wise polynomial functions, defined by the range that they are defined over, which will be referred to as $[a,b]$ where $a,b\in\mathbb{R}$, their knots and break points and their order (which will be referred to as $n$). A set of B-Spline functions which define a B-Spline basis can be linearly combined to give any spline function of the same degree (which is $n-1$). A spline function is a piece-wise polynomial function which is defined over a constrained domain $[a,b]$ that takes values within the real numbers. The most important aspect of spline functions for estimating functions from observed data is that they are functions defined within $[a,b]$, that are differentiable $n-1$ times. For example, a spline of order 2 , e.g. $n=2$, is only differentiable once and, therefore, spline functions of order 2 will be functions that are made up of piecewise straight line segments. Therefore, a set of order 2 B-Spline functions which form a basis, defined on $[a,b]$,  can be linearly combined to give any function, defined on $[a,b]$, which is made up of piecewise straight line segments. For a detailed explanation of how B-Splines are defined see the [Appendix] Section of this dissertation. These sets of B-Spline functions which form bases, similarly to the sets of Fourier functions which form bases, can be used to estimate functions from our observed data using the basis function decomposition given in Equation \@ref(eq:ex1basisapprox). 
 
 
 It is not necessary to know how B-Spline functions are defined to make use of them. The only knowledge necessary are their key features. It was mentioned above that the sets of B-Spline functions which make up a basis system are defined by their knots and break points. The break points of a B-Spline basis are the points where each of the piecewise polynomial sections of the spline (created by linear combination of the B-Splines) meet. The knots are related to the break points such that there is at least one knot at each break point. Each knot placed at a break point signifies how many derivative terms should appear to have a smooth join at a break point. If there is one knot placed at a break point then the first $n-2$ derivatives should appear smooth across the break point. This is a specific example of the general relation that if there are r knots at a breakpoint then the first $n-r-1$ derivatives of the spline function must appear smooth across the break point. 
@@ -219,15 +219,15 @@ It is also important to understand the relation between the number of knots and 
   (\#eq:nobasfuncrelation)
 \end{equation}  
 
-The number of interior knots refers to the number of knots that are defined which are not on the boundaries of the domain in which the basis functions are defined. 
+The interior knots of a B-Spline function refers to the knots that do not lie on the boundaries of the domain in which the basis functions are defined e.g. are not at $a$ or $b$. 
 
-This understanding of knots and break points is very useful if a statistician plans on using the derivatives of functions in his sample for analysis as the statistician can define the splines to be smooth curves across the derivatives that he wishes based on this relation. It is also useful to understand how the number of basis functions is related to the number of knots as the number of basis functions inadvertently defines the dimensionality of our new samples. 
+This understanding of knots and break points is very useful if a statistician plans on using the derivatives of functions they are estimating from their non-functional sample. The statistician can define the set of B-Spline functions which form the basis with a high enough order and an appropriate placement of knots such that the derivatives that the statistician wishes to use of the function estimated are reasonably smooth. It is also useful to understand how the number of basis functions is related to the number of knots as the number of basis functions inadvertently defines the dimensionality of our new samples. 
 
 
 
 ### The Dimensionality of Samples of Functional Data  
 
-We have now introduced the concept of both of the basis systems which will be used within this dissertation to estimate functions from observed data. One of the main advantages of functional data analysis is the reduction of dimensionality within the data used for analysis. Returning to the original blood pressure example, the original dimensionality of the data, given in the data matrix in \@ref(eq:datamatex), was that there were 4 observations of blood pressure for 3 different replication, those being each patients, overall giving 12 observations. One would assume that when the sample moves from being the observed non-functional data to the sample being 4 functions that the dimensionality of the sample would be 4 the four functions, one function for each patient. This is not the best way of thinking of the dimensionality of the sample. It is better to think of each function within the sample as being defined by the coefficients of the basis functions used to estimate the functions. Typically each function within the sample will be estimated using the same basis system as the data will be similar across all replications. Say we use a set of 2 functions from a B-Spline basis system to estimate the functions which gives the blood pressure of each patient at a given time, then the dimensions of our sample becomes 2 coefficients for each function with a function for each of the 3 patients which gives 3 pairs of coefficients (6 coefficients overall) which define our sample. This is how working with functional data reduces the dimensionality of our samples and this reduction of dimensionality allows computers to conduct analysis faster than when working with non-functional data. This main advantage of working with functional data is important to remember when deciding how many basis functions we wish to use to estimate our functions. Using more basis functions that observations leads to an increase in the dimensionality of our data but using too few could lead to a bad estimation of our function. How do we choose how many basis functions to use? 
+One of the main advantages of functional data analysis is the potential for the reduction of dimensionality within the data used for analysis. Returning to the original blood pressure example, the original dimensionality of the data, given in the data matrix in \@ref(eq:datamatex), was that there were 4 observations of blood pressure for 3 different replication, those being each patient, overall giving 12 observations. One would assume that when the sample moves from being the observed non-functional data to the sample being 4 functions that the dimensionality of the sample would be the four functions, one function for each patient. However, this is not the best way of thinking of the dimensionality of the sample. It is better to think of each function within the sample as being defined by the coefficients of the basis functions used to estimate the functions. Typically each function within the sample will be estimated using the same basis system as the data will be similar across all replications. Consider a situation in which a B-Spline basis composed of 2 functions is used to estimate the functions which give the blood pressure of each patient at a given time. The dimensions of the sample becomes 2 coefficients for each function with a function for each of the 3 patients which gives 3 pairs of coefficients (6 coefficients overall) which define our sample. This is how working with functional data reduces the dimensionality of samples and this reduction of dimensionality allows computers to conduct analysis faster than when working with non-functional data. This main advantage of working with functional data is important to remember when deciding how many basis functions we wish to use to estimate our functions. Using more basis functions than can lead to an increase in the dimensionality of our data but using too few could lead to a bad estimation of our function. How do we choose how many basis functions to use? 
 
 
 ### How Many Basis Functions? 
@@ -239,7 +239,7 @@ It may seem intuitive to use as many basis functions as is computationally possi
 
 ### Making a Set of B-Spline Basis Functions in R
 
-To render B-spline basis functions in R for use in FDA functions we need to use the create.bspline.basis function from the FDA package. To render the basis system specified in the example given in the appendix we would use the command: 
+To render B-spline basis functions in R for use in functions within the `fda` package the `create.bspline.basis` function from the `fda` package must be used. An example call to the function is given below 
 
 ```{r example render B-Splines, eval = F,echo=T}
 
@@ -247,7 +247,7 @@ create.bspline.basis(c(0,4),norder=2,breaks=c(0,1,3,4))
 
 ```
 
-The first argument passed to this function gives the range that the spline basis should be defined over, the second argument defines the order of splines we wish to render and the final argument gives the values that break points should be placed at. Rendering basis functions using break points places one knot at each break point. 
+The first argument passed to this function gives the range that the B-Spline basis should be defined over, the second argument defines the order of splines and the final argument gives the values that break points should be placed at. Rendering basis functions using break points places one knot at each break point. 
 
 The following code gives another example of rendering basis functions. This time the set of basis functions is specified by giving the number of basis functions in the set and the order of the basis functions. 
 
@@ -257,14 +257,14 @@ create.bspline.basis(c(0,10),16,7)
 
 ```
 
-This code will render 16 B-spline functions of order 7 over the range of  $t \in [1,10]$. From the relation given in Equation \@ref(eq:nobasfuncrelation), we can see that there should be $16-7=9$ interior knots within the basis system and so the functions to be defined by 9 knots that are equally spaced that cover the interval of $t \in [1,10]$. \par
+This code will render 16 B-spline functions of order 7 over the range of  $t \in [1,10]$. From the relation given in Equation \@ref(eq:nobasfuncrelation), it can be seen that there should be $16-7=9$ interior knots within the basis system and so the functions to be defined by 9 knots that are equally spaced that cover the interval of $t \in [1,10]$. \par
 
-Returning to the second example where we are trying to estimate $f_1(t)$ from data we have simulated from the function, the data from this example is non-periodic, e.g. it does not have any repeating patterns, so we would wish to choose B-splines to estimate the function. 
+Returning to the example with which the analytical form of the function to estimate is known, the data from this example is non-periodic, e.g. it does not have any repeating patterns, so B-splines can be to estimate the function. 
 
-A question that arises in relation to our example is how we choose the order of B-spline that we need. The answer to this questions depends on what we are needing to do with our functional data object. If we are in need of it's derivatives then the general rule is to *fix the order of the B-spline basis to be at least two higher than the highest order derivative that is needed*. We are trying to fit a functional data object that we do not wish to take any derivatives of. In this case the general rule is that a linear combination of B-splines of order 4 will provide a smooth enough estimate of the function and so we will fix the order of our set of B-Splines to be 4 for this example. \par
+A question that arises in relation to this example is how to choose the order of B-splines that are needed. The answer to this questions depends on what is needed to be done with the estimated function. Ifthe derivatives of this function are needed then the general rule is to *fix the order of the B-spline basis to be at least two higher than the highest order derivative that is needed*. If the derivatives of the function are not going to be analysed, the general rule is that a linear combination of B-splines of order 4 will provide a smooth enough estimate of the function. Therefore, B-Splines of order 4 will be used for this example. \par
 
 
-Returning to our original example, we now know that we want to use a series of order 3 B splines to estimate the function $f_1(t)$ from our observed data as our data is non-functional and we are not wishing to use any of it's derivatives. Our example has `r length(Time_Grid)` data points. Placing a break point at each observation means that we have to have `r length(Time_Grid)-2+4` basis functions. This set of basis functions is rendered in R using the code given below. 
+In this example, there are `r length(Time_Grid)` data points. Placing a break point at each observation means that there will be `r length(Time_Grid)-2+4` basis functions in the basis used to estimate the function. This set of basis functions is rendered in R using the code given below and are stored in the variable `basis_ex_1`. 
 
 ```{r basisfunctiondef}
 
@@ -274,25 +274,21 @@ Range_of_Times <- range(ex_1_data$Time)
 
 basis_ex_1 <- create.bspline.basis(Range_of_Times,breaks=interior_break_points,norder=4)
 
-
-
 ```
 
-We now have our set of functions with which we will estimate our function $f_1(t)$ using the approximation given in Equation \@ref(eq:ex1basisapprox). However, we are yet to find the coefficients of these basis functions in the linear combination. Two methods of finding these coefficients are introduced in the [Finding Coefficients] section.
+The set of bassi fcuntions that will be used to estimate the function, $f_1(t)$, in this example has now been defined. these basis functions will be linearly combined to estimate the function as shown in Equation \@ref(eq:ex1basisapprox). However, this cannot be yet be done as the coefficients of these basis functions in the linear combination still need to be estimated. Two methods of finding these coefficients are introduced in the [Finding Coefficients] section.
 
 ## Finding Coefficients
 
-Throughout the previous sections the process of smoothing has been repeatedly mentioned. Smoothing a data set refers to the process of approximating a function from that data set that gives the general trend of the variable of interest over a certain parameter, while excluding errors in measurement. In this case, the parameter a variable is changing over is typically time, however other parameters are sometimes used, e.g. angles. Smoothing is similiar to interpolation definition however interpolation assumes that there is no error or noise in the observations and so the function estimated passes through every point in the data whereas smoothing assumes there are errors in the observations. 
+Throughout the previous sections the process of smoothing has been repeatedly mentioned. Smoothing a data set refers to the process of approximating a function from that data set that gives the general trend of the variable of interest over a certain parameter, taking account of errors in measurement. In this case, the parameter a variable is changing over is typically time, however other parameters are sometimes used, e.g. angles. Smoothing is similiar to interpolation however interpolation assumes that there is no error or noise in the observations and so the function estimated passes through every point in the data whereas smoothing assumes there are errors in the observations. 
 
-We have already stated in Equation \@ref(eq:functionobservedrelationship) that we assume that each observed value within our non-functional data has some error associated with it so we wish to use smoothing techniques to estimate our curves. This section will introduce smoothing two techniques which helps us estimate the coefficients of our basis functions which give the best estimate of our function $f_1(t)$. These techniques will also be used more generally throughout the dissertation to estimate functions when we do not have access to the function which describes a relationship between a variable and time. All methods discussed in the [Finding Coefficients] section can be applied for any choice of basis function, even choices not mentioned within this dissertation.
-
-
+It was stated in Equation \@ref(eq:functionobservedrelationship) that it will be assumed that each observed value within the non-functional data has some error associated with it so smoothing techniques should be used to estimate our curves, not interpolation. This section will introduce two smoothing techniques which attempt to estimate the coefficients of our basis functions that give the best estimate of our function $f_1(t)$. These techniques will also be used more generally throughout the dissertation to estimate functions when there is no access to the function which describes the relationship between a variable and time. All methods discussed in the [Finding Coefficients] section can be applied for any choice of basis function, even choices not mentioned within this dissertation.
 
 ### Regression Smoothing
 
-The first method of finding the coefficients of our basis functions that we will consider is smoothing using regression analysis.  \par
+The first method of finding the coefficients of our basis functions to be considered is smoothing using regression analysis.  \par
 
-This is the simplest method of smoothing. This method seeks to make the residuals, being the difference between the estimated function and the observed values, as small as possible. It does this by rearranging Equation \@ref(eq:functionobservedrelationship) as shown below and then minimises these residuals.    
+This is the simplest method of smoothing. This method seeks to make the difference between the estimated function and the observed values (known as the residuals) as small as possible. It does this by rearranging Equation \@ref(eq:functionobservedrelationship) as shown below and then minimising these residuals.    
 
 
 \begin{align*}
@@ -320,18 +316,19 @@ This SSE can be rewritten in terms of basis functions and coefficients by substi
   (\#eq:SSEdecomp)
 \end{align*} \par
 
+The reader may notice that the SSE changes from being a function of the function $f$ to being  a function of the coefficient vector ,$\boldsymbol{c}$, within this substitution. This is because the basis functions used to construct $f$ are constant and have been pre-chosen. The only non-constant term within the SSE is the coefficient vector, $\boldsymbol{c}$
+
 The vector $\boldsymbol{\phi(t_j)}$ gives the value of each of the basis functions evaluated at the observed time points $t_j$. All of the values of the basis functions evaluated at the time points that each observation was observed at are stored in a matrix $\boldsymbol{\phi}$ (often called the basis matrix). This matrix is structured such that each column of the matrix contains the basis functions evaluated at 1 observation of $t$, $t_j$. For example the first row of this matrix contains the values that the first basis function takes for every observed time point. This matrix is an $n \times K$ matrix. \par
 
 
-In the example we have been considering where we are trying to estimate $f_1(t)$ from our simulated data stored in the data frame `ex_1_data`, we can get the $\boldsymbol{\phi}$ from our data by using the eval.basis command. The first argument passed to this function is the time points which the user wishes to have their basis evaluated at and the second argument supplied is the basis functions, created using the create.fourier.basis or create.bspline.basis within this dissertation. The call to this function which gives the $\boldsymbol{\phi}$ matrix for the data in our example is given below. 
+In the example where $f_1(t)$ is being estimated from simulated data stored in the data frame `ex_1_data`, $\boldsymbol{\phi}$  can be found using the eval.basis command from the `fda` package. The first argument passed to this function is the time points which the user wishes to have their basis evaluated at and the second argument supplied is the basis functions, created using the create.fourier.basis or create.bspline.basis within this dissertation. The call to this function which gives the $\boldsymbol{\phi}$ matrix for this example is given below. 
 
 ```{r example render eval basis, eval = F,echo=T}
 eval.basis(ex_1_data$Time,basis_ex_1)
 ```
 \par
 
-Minimising our SSE function may seem quite difficult. This is a multivariate optimisation problem where there are many covariates to optimise. Taking our example as a case study, the number of coefficients we have to estimate is 81 as we have 81 basis functions and these coefficients can take any number in the real number line.  
-
+Minimising the SSE function may seem quite difficult. This is a multivariate optimisation problem where there are many covariates to optimise. Taking our example as a case study, the number of coefficients to be estimated is 81 as there are 81 basis functions and the coefficients of these can be any number on the real number line.  
 
 This optimisation problem is not as difficult as it may appear. In typical non-functional regression analysis the sum of squared errors of the residuals is minimised to get regression coefficients. The SSE, as a function of the coefficients of the regression parameters, for non-functional regression analysis is given in Equation \@ref(eq:SSEregression).  
 
@@ -340,14 +337,14 @@ This optimisation problem is not as difficult as it may appear. In typical non-f
   (\#eq:SSEregression)
 \end{equation}
 
-This is very similiar to the SSE we are trying to estimate. The only difference is that in the SSE we are trying to minimise the $\boldsymbol{\phi}$ matrix takes the place of the design matrix, $\boldsymbol{X}$. The estimate of $\boldsymbol{c}$ that minimizes the SSE for non-functional regression analysis is given below in Equation \@ref(eq:BoldCest). 
+This is very similiar to the SSE for minimising the residuals of the function estimated from the observed data. The only difference is that in this SSE the $\boldsymbol{\phi}$ matrix takes the place of the design matrix, $\boldsymbol{X}$. The estimate of $\boldsymbol{c}$ that minimizes the SSE for non-functional regression analysis is given below in Equation \@ref(eq:BoldCest). 
 
 \begin{equation}
   \boldsymbol{\hat{c}} = (\boldsymbol{X'X})^{-1}\boldsymbol{X}'\boldsymbol{Y}\\
   (\#eq:BoldCest)
 \end{equation}
 
-When minimizing the SSE for finding the functional coefficients we can simply exchange the design matrix, $\boldsymbol{X}$, with our basis matrix, $\boldsymbol{\phi}$, to get the estimate of the coefficient vector, $\boldsymbol{\hat{c}}$, given in Equation \@ref(eq:estimateofCregression). This vector of coefficients is the vector of coefficients then used to estimate the function. 
+When minimizing the SSE for finding the functional coefficients the design matrix, $\boldsymbol{X}$, can be exchanged with the basis matrix, $\boldsymbol{\phi}$, to get the estimate of the coefficient vector, $\boldsymbol{\hat{c}}$, given in Equation \@ref(eq:estimateofCregression). This vector of coefficients is the vector of coefficients then used to estimate the function. 
 
 \begin{equation}
   \boldsymbol{\hat{c}} = (\boldsymbol{\phi'\phi})^{-1}\boldsymbol{\phi'}\boldsymbol{Y}
@@ -355,33 +352,40 @@ When minimizing the SSE for finding the functional coefficients we can simply ex
 \end{equation}
 
 
+The `fda` package can conduct the process of minimising the SSE to find the coefficients of the basis functions that is shown above. The function `smooth.basis` can be used to conduct this form of regression smoothing as well as smoothing using a roughness penalty which is introduced in the next section. This function to only finds the coefficients by minimising the SSE as laid out above but also fits the resulting functional data object (being the linear combination of basis functions and coefficients). In order to conduct regression smoothing the user must pass in 3 arguments to the function. The first is the time points which the observed data are observed at, the second is the observations of the data in data matrix for similiar to that shown in \@ref(eq:datamatex) for the blood pressure example and the final argument is the basis functions that the user wishes to use to estimate the function.  The code below conducts the regression smoothing on the data in example (????) and fits the resulting functional data object. 
+
+```{r smooth.basis ex_1}
+ex_1_smooth_basis <- smooth.basis(ex_1_data$Time,ex_1_data$Y,basis_ex_1)
+```
+
+This call to the `smooth.basis` function does not just return the functional data object. It also returns the value of the SSE that is given by the estimated coefficient vector as well as a few other values which will be discussed in the next section. the most important of the objects returned by the function is the functional data object itself which is stored as `fd` and can be accessed using the $ operator as shown, for the example, below.  
+
+```{r smooth.basis fd_obj}
+ex_1_fd_obj <- ex_1_smooth_basis$fd
+```
+
+This function can be easily plotted using the plot function in base `R`. This is shown in the call to the function below. The points argument included overlays the original data from which the function was estimated and the lines argument overlays a red line which gives the true shape of the function which is to be estimated. The output of this call to the plot function is shown in Figure \@ref(fig:plotfitex1)
 
 
-
-
-The FDA package has a function that can both find these coefficients in the way shown above and fit the model that uses these coefficients for us. 
-
-These functions are not commonly used, however, as there is a function called *smooth.basis* which carries out the process laid out previously using these functions and outputs an already fitted functional data object. To get this function to determine the functional data observations coefficients such that they minimize the SSE we pass the function our vector of observed explanatory variable observations, generally given by $\boldsymbol{t}$ and in our case given by $X$, our vector of observed values, generally referred to as $\boldsymbol{Y}$, and the basis functions we wish to use to fit the functional data object. \par 
-
-```{r smooth.basis ex_1 ls}
-
-plot(smooth.basis(ex_1_data$Time,ex_1_data$Y,basis_ex_1))
+```{r plot fit ex 1 code, eval=FALSE}
+plot(ex_1_fd_obj)
 par(new=TRUE)
 points(ex_1_data$Time,ex_1_data$Y)
 lines(ex_1_data$Time,function_ex_1(ex_1_data$Time),col="red")
-
-
-
 ```
 
+```{r plotfitex1,echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide', fig.cap="Estimate of Function With True Function (Red Line) and the Data Used to Estimate It Overlayed"}
+plot(ex_1_fd_obj)
+par(new=TRUE)
+points(ex_1_data$Time,ex_1_data$Y)
+lines(ex_1_data$Time,function_ex_1(ex_1_data$Time),col="red")
+```
 
-A plot of the fit of this functional data object fit using regression is given below.  
-
-This method of finding the coefficients of a functional data object has a few drawbacks. This method does not adjust for how smooth we wish our curve to be and tends to over fit the data if there are significantly more basis functions than data points. This method also tends to give very unstable estimates of the derivatives of the curves near the boundaries of our data  which is nit useful as one of the main advantages of functional data analysis is that it allows for analysis of the derivatives of the functional aspects of the data. 
+It can be seen from Figure \@ref(fig:plotfitex1) that this method of finding the coefficients of a functional data object has a few drawbacks. This method does not adjust assume that there is any error in the observations and tends to overfit the data as it only minimises the differences between the estimated function and the observed data. This method also tends to give very unstable estimates of the derivatives of the curves near the boundaries of other data  which is not useful as one of the advantages of functional data analysis is that it allows for analysis of the derivatives of the functional aspects of the data. 
 
 ### Smoothing using a Roughness Penalty
 
-The generally preferred method of finding the coefficients for a functional data object is smoothing using roughness penalties. This method is similar to that used in smoothing using regression analysis in that it uses a the sum of squared errors. However, this method adds a roughness penalty to this sum of squared errors in order to stop the functional data object from over fitting to the data. This sum of squared errors with this new roughness penalty term is shown in Equation .
+The generally preferred method of finding the coefficients for a functional data object is smoothing using a roughness penalty. This method is similar to that used in smoothing using regression analysis in that it uses a the sum of squared errors. However, this method adds a roughness penalty to this sum of squared errors in order to stop the functional data object from over fitting to the data. This sum of squared errors with this new roughness penalty term is shown in Equation .
 
 
 $$
@@ -514,6 +518,12 @@ residuals <- ex_1_data$Y - as.vector(eval.fd(ex_1_data$Time,function_ex_1))
 shapiro.test(residuals)
 
 ```
+
+
+# Summary Statistics of Functional Data
+
+
+
 
 # Appendix
 
