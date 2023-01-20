@@ -92,14 +92,14 @@ In order to estimate a functional sample from observed data a process called smo
 
 ## Basis Functions
 
-In order to give the reader an understanding of how to create a functional data object (one function which describes the relationship between a variable and time), both mathematically and in computationally in R, a new example will be used. In this example, it is assumed that the relationship between a variable and time is already known. This variable $Y$ is related to time by the functional relationship given in Equation \@ref(eq:ex2function). This relationship is relatively simple and is expressible through typical mathematical notation, e.g. it is analytic. The reader should note that this will not typically be the case for relationships between variables and time. In fact, it is generally not possible to attain a simply expressible function for this relationship. 
+In order to give the reader an understanding of how to create a functional data object (one function which describes the relationship between a variable and time), both mathematically and in computationally in R, a new example will be used, which will be referred to throughout this dissertation as Example 1. In Example 1, it is assumed that the relationship between a variable and time is already known. This variable $Y$ is related to time by the functional relationship given in Equation \@ref(eq:ex2function). This relationship is relatively simple and is expressible through typical mathematical notation, e.g. it is analytic. The reader should note that this will not typically be the case for relationships between variables and time. In fact, it is generally not possible to attain a simply expressible function for this relationship. 
 
 \begin{equation}
-   Y(t)=f_1(t)=\frac{1}{300}(t^3+t+e^{-t^2})
+   Y(t)=f_1(t)=\frac{1}{2}(t+t^2+e^{-\frac{1}{5}t}+e^{-\frac{1}{30}t+8}))
   (\#eq:ex2function)
 \end{equation}
 
-Throughout this example, the smoothing process will be conducted as if the analytical form of this function is not known. To demonstrate how the smoothing process works, data is simulated from the function which mimics the data a statistician may receive in a typical analysis. The function is then be estimated from this data using smoothing. It is assumed that the assumptions about the relationship between the functional data and observed data established in Equation \@ref(eq:functionobservedrelationship) are true for this data set when this data is generated. The variance of the error terms, ($\epsilon_i$), is made to be $30$ as this would simulate an observation error similar to that what would seen in a practical setting. The time point of the simulated data are evenly spaced in the region of $[-40,40]$. The R Code used to simulate this data is given below. 
+Throughout this example, the smoothing process will be conducted as if the analytical form of this function is not known. To demonstrate how the smoothing process works, data is simulated from the function which mimics the data a statistician may receive in a typical analysis. The function is then be estimated from this data using smoothing. It is assumed that the assumptions about the relationship between the functional data and observed data established in Equation \@ref(eq:functionobservedrelationship) are true for this data set when this data is generated. The variance of the error terms, ($\epsilon_i$), is made to be $30$ as this would simulate an observation error similar to that what would seen in a practical setting. The time points of the simulated data are evenly spaced in the region of $t \in [0,40]$. The R Code used to simulate this data is given below. 
 
 
 ```{r chap 1 ex 1 data,echo=TRUE}
@@ -107,12 +107,12 @@ Throughout this example, the smoothing process will be conducted as if the analy
 set.seed(190005680)
 
 function_ex_1 <- function(Time){
-  1/300*(Time+Time^3+exp(-Time^2))
+  (1/2)*(Time+Time^2+exp(-1/5*(Time))+exp(-(1/30)*Time+8))
 }
 
 sigma_2_errors <- 30
 
-Time_Grid <- seq(-40,40,1)
+Time_Grid <- seq(0,40,length.out=40)
 
 Observations <- function_ex_1(Time_Grid)
 
@@ -200,7 +200,6 @@ The final parameter passed to this function gives the period of the basis system
 
 Some examples of periodic data are air temperature over the course of a few days, as the temperature may follow similar trends each day (so period $T=1\; day$ ) or the angle a lever is in relation to being upright over time (The fourier basis is often used to estimate functions from data related to angles). \par
 
-
 The Fourier Basis can be used to construct functions which are periodic. The B-Spline basis system is used to estimate functions from data which is not periodic in nature. 
 
 
@@ -213,7 +212,6 @@ It is not necessary to know how B-Spline functions are defined to make use of th
 
 It is also important to understand the relation between the number of knots and the number of functions in a B-Spline basis. This relation is given in Equation \@ref(eq:nobasfuncrelation). 
 
-
 \begin{equation}
   number \; of \; basis \; functions \; = \; order \; + \; number \; of \; interior \; knots 
   (\#eq:nobasfuncrelation)
@@ -224,7 +222,6 @@ The interior knots of a B-Spline function refers to the knots that do not lie on
 This understanding of knots and break points is very useful if a statistician plans on using the derivatives of functions they are estimating from their non-functional sample. The statistician can define the set of B-Spline functions which form the basis with a high enough order and an appropriate placement of knots such that the derivatives that the statistician wishes to use of the function estimated are reasonably smooth. It is also useful to understand how the number of basis functions is related to the number of knots as the number of basis functions inadvertently defines the dimensionality of our new samples. 
 
 
-
 ### The Dimensionality of Samples of Functional Data  
 
 One of the main advantages of functional data analysis is the potential for the reduction of dimensionality within the data used for analysis. Returning to the original blood pressure example, the original dimensionality of the data, given in the data matrix in \@ref(eq:datamatex), was that there were 4 observations of blood pressure for 3 different replication, those being each patient, overall giving 12 observations. One would assume that when the sample moves from being the observed non-functional data to the sample being 4 functions that the dimensionality of the sample would be the four functions, one function for each patient. However, this is not the best way of thinking of the dimensionality of the sample. It is better to think of each function within the sample as being defined by the coefficients of the basis functions used to estimate the functions. Typically each function within the sample will be estimated using the same basis system as the data will be similar across all replications. Consider a situation in which a B-Spline basis composed of 2 functions is used to estimate the functions which give the blood pressure of each patient at a given time. The dimensions of the sample becomes 2 coefficients for each function with a function for each of the 3 patients which gives 3 pairs of coefficients (6 coefficients overall) which define our sample. This is how working with functional data reduces the dimensionality of samples and this reduction of dimensionality allows computers to conduct analysis faster than when working with non-functional data. This main advantage of working with functional data is important to remember when deciding how many basis functions we wish to use to estimate our functions. Using more basis functions than can lead to an increase in the dimensionality of our data but using too few could lead to a bad estimation of our function. How do we choose how many basis functions to use? 
@@ -233,8 +230,6 @@ One of the main advantages of functional data analysis is the potential for the 
 ### How Many Basis Functions? 
 
 It may seem intuitive to use as many basis functions as is computationally possible to estimate functions from non-functional data. Using more basis functions would allow for our basis function expansion, given in Equation \@ref(eq:ex1basisapprox), to approximate the shape of the actual function better. While this is generally the case it is not practical or necessary. Often adding more basis functions does not give the statistician any more information about the actual nature of the processes which produce the data. It can also lead to the problem of over fitting as in a practical application the function we do not know the true complexity of the function we are to estimate. The process of smoothing which will be introduced in the [Finding Coefficients] section will address this issue of over fitting and it is also part of the reason that adding more basis functions often does not produce a greater fit to the actual functions we are trying to estimate. Often it is a case of trial and error to find the number of basis functions which give the desired complexity for the data you are working with. (READ MORE INTO THIS)
-
-
 
 
 ### Making a Set of B-Spline Basis Functions in R
@@ -259,12 +254,12 @@ create.bspline.basis(c(0,10),16,7)
 
 This code will render 16 B-spline functions of order 7 over the range of  $t \in [1,10]$. From the relation given in Equation \@ref(eq:nobasfuncrelation), it can be seen that there should be $16-7=9$ interior knots within the basis system and so the functions to be defined by 9 knots that are equally spaced that cover the interval of $t \in [1,10]$. \par
 
-Returning to the example with which the analytical form of the function to estimate is known, the data from this example is non-periodic, e.g. it does not have any repeating patterns, so B-splines can be to estimate the function. 
+Returning to Example 1, the data from this example is non-periodic, e.g. it does not have any repeating patterns, so B-splines can be to estimate the function. 
 
 A question that arises in relation to this example is how to choose the order of B-splines that are needed. The answer to this questions depends on what is needed to be done with the estimated function. Ifthe derivatives of this function are needed then the general rule is to *fix the order of the B-spline basis to be at least two higher than the highest order derivative that is needed*. If the derivatives of the function are not going to be analysed, the general rule is that a linear combination of B-splines of order 4 will provide a smooth enough estimate of the function. Therefore, B-Splines of order 4 will be used for this example. \par
 
 
-In this example, there are `r length(Time_Grid)` data points. Placing a break point at each observation means that there will be `r length(Time_Grid)-2+4` basis functions in the basis used to estimate the function. This set of basis functions is rendered in R using the code given below and are stored in the variable `basis_ex_1`. 
+In Example 1, there are `r length(Time_Grid)` data points. Placing a break point at each observation means that there will be `r length(Time_Grid)-2+4` basis functions in the basis used to estimate the function. This set of basis functions is rendered in R using the code given below and are stored in the variable `basis_ex_1`. 
 
 ```{r basisfunctiondef}
 
@@ -276,11 +271,11 @@ basis_ex_1 <- create.bspline.basis(Range_of_Times,breaks=interior_break_points,n
 
 ```
 
-The set of bassi fcuntions that will be used to estimate the function, $f_1(t)$, in this example has now been defined. these basis functions will be linearly combined to estimate the function as shown in Equation \@ref(eq:ex1basisapprox). However, this cannot be yet be done as the coefficients of these basis functions in the linear combination still need to be estimated. Two methods of finding these coefficients are introduced in the [Finding Coefficients] section.
+The set of basis functions that will be used to estimate the function, $f_1(t)$, in this example has now been defined. these basis functions will be linearly combined to estimate the function as shown in Equation \@ref(eq:ex1basisapprox). However, this cannot be yet be done as the coefficients of these basis functions in the linear combination still need to be estimated. Two methods of finding these coefficients are introduced in the [Finding Coefficients] section.
 
 ## Finding Coefficients
 
-Throughout the previous sections the process of smoothing has been repeatedly mentioned. Smoothing a data set refers to the process of approximating a function from that data set that gives the general trend of the variable of interest over a certain parameter, taking account of errors in measurement. In this case, the parameter a variable is changing over is typically time, however other parameters are sometimes used, e.g. angles. Smoothing is similiar to interpolation however interpolation assumes that there is no error or noise in the observations and so the function estimated passes through every point in the data whereas smoothing assumes there are errors in the observations. 
+Throughout the previous sections the process of smoothing has been repeatedly mentioned. Smoothing a data set refers to the process of approximating a function from that data set that gives the general trend of the variable of interest over a certain parameter, taking account of errors in measurement. In this case, the parameter a variable is changing over is typically time, however other parameters are sometimes used, e.g. angles. Smoothing is similar to interpolation however interpolation assumes that there is no error or noise in the observations and so the function estimated passes through every point in the data whereas smoothing assumes there are errors in the observations. 
 
 It was stated in Equation \@ref(eq:functionobservedrelationship) that it will be assumed that each observed value within the non-functional data has some error associated with it so smoothing techniques should be used to estimate our curves, not interpolation. This section will introduce two smoothing techniques which attempt to estimate the coefficients of our basis functions that give the best estimate of our function $f_1(t)$. These techniques will also be used more generally throughout the dissertation to estimate functions when there is no access to the function which describes the relationship between a variable and time. All methods discussed in the [Finding Coefficients] section can be applied for any choice of basis function, even choices not mentioned within this dissertation.
 
@@ -321,10 +316,10 @@ The reader may notice that the SSE changes from being a function of the function
 The vector $\boldsymbol{\phi(t_j)}$ gives the value of each of the basis functions evaluated at the observed time points $t_j$. All of the values of the basis functions evaluated at the time points that each observation was observed at are stored in a matrix $\boldsymbol{\phi}$ (often called the basis matrix). This matrix is structured such that each column of the matrix contains the basis functions evaluated at 1 observation of $t$, $t_j$. For example the first row of this matrix contains the values that the first basis function takes for every observed time point. This matrix is an $n \times K$ matrix. \par
 
 
-In the example where $f_1(t)$ is being estimated from simulated data stored in the data frame `ex_1_data`, $\boldsymbol{\phi}$  can be found using the eval.basis command from the `fda` package. The first argument passed to this function is the time points which the user wishes to have their basis evaluated at and the second argument supplied is the basis functions, created using the create.fourier.basis or create.bspline.basis within this dissertation. The call to this function which gives the $\boldsymbol{\phi}$ matrix for this example is given below. 
+In Example 1 where $f_1(t)$ of known analytical form is being estimated from simulated data, $\boldsymbol{\phi}$ can be found using the eval.basis command from the `fda` package. The first argument passed to this function is the time points which the user wishes to have their basis evaluated at and the second argument supplied is the basis functions, created using the `create.fourier.basis` or `create.bspline.basis` within this dissertation. The call to this function which gives the $\boldsymbol{\phi}$ matrix for this example is given below. 
 
 ```{r example render eval basis, eval = F,echo=T}
-eval.basis(ex_1_data$Time,basis_ex_1)
+phi_mat_ex_1 <- eval.basis(ex_1_data$Time,basis_ex_1)
 ```
 \par
 
@@ -352,22 +347,22 @@ When minimizing the SSE for finding the functional coefficients the design matri
 \end{equation}
 
 
-The `fda` package can conduct the process of minimising the SSE to find the coefficients of the basis functions that is shown above. The function `smooth.basis` can be used to conduct this form of regression smoothing as well as smoothing using a roughness penalty which is introduced in the next section. This function to only finds the coefficients by minimising the SSE as laid out above but also fits the resulting functional data object (being the linear combination of basis functions and coefficients). In order to conduct regression smoothing the user must pass in 3 arguments to the function. The first is the time points which the observed data are observed at, the second is the observations of the data in data matrix for similiar to that shown in \@ref(eq:datamatex) for the blood pressure example and the final argument is the basis functions that the user wishes to use to estimate the function.  The code below conducts the regression smoothing on the data in example (????) and fits the resulting functional data object. 
+The `fda` package can conduct the process of minimising the SSE to find the coefficients of the basis functions that is shown above. The function `smooth.basis` can be used to conduct this form of regression smoothing as well as smoothing using a roughness penalty which is introduced in the next section. This function to only finds the coefficients by minimising the SSE as laid out above but also fits the resulting functional data object (being the linear combination of basis functions and coefficients). In order to conduct regression smoothing the user must pass in 3 arguments to the function. The first is the time points which the observed data are observed at, the second is the observations of the data in data matrix for similiar to that shown in \@ref(eq:datamatex) for the blood pressure example and the final argument is the basis functions that the user wishes to use to estimate the function.  The code below conducts the regression smoothing on the data simulated for Example 1 and fits the resulting functional data object. 
 
-```{r smooth.basis ex_1}
+```{r smooth.basis ex_1, echo=T}
 ex_1_smooth_basis <- smooth.basis(ex_1_data$Time,ex_1_data$Y,basis_ex_1)
 ```
 
-This call to the `smooth.basis` function does not just return the functional data object. It also returns the value of the SSE that is given by the estimated coefficient vector as well as a few other values which will be discussed in the next section. the most important of the objects returned by the function is the functional data object itself which is stored as `fd` and can be accessed using the $ operator as shown, for the example, below.  
+This call to the `smooth.basis` function does not just return the functional data object. It also returns the value of the SSE that is given by the estimated coefficient vector as well as a few other values which will be discussed in the next section. the most important of the objects returned by the function is the functional data object itself which is stored as `fd` and can be accessed using the $ operator as shown, for Example 1, below.  
 
-```{r smooth.basis fd_obj}
+```{r smooth.basis fd_obj, echo=T}
 ex_1_fd_obj <- ex_1_smooth_basis$fd
 ```
 
-This function can be easily plotted using the plot function in base `R`. This is shown in the call to the function below. The points argument included overlays the original data from which the function was estimated and the lines argument overlays a red line which gives the true shape of the function which is to be estimated. The output of this call to the plot function is shown in Figure \@ref(fig:plotfitex1)
+This function can be easily plotted using the `plot` function found in base `R`. This is shown in the call to the function below. The points argument included overlays the original data from which the function was estimated and the lines argument overlays a red line which gives the true shape of the function which is to be estimated. The output of this call to the plot function is shown in Figure \@ref(fig:plotfitex1)
 
 
-```{r plot fit ex 1 code, eval=FALSE}
+```{r plot fit ex 1 code, eval=FALSE, eval = F,echo=T}
 plot(ex_1_fd_obj)
 par(new=TRUE)
 points(ex_1_data$Time,ex_1_data$Y)
@@ -381,11 +376,11 @@ points(ex_1_data$Time,ex_1_data$Y)
 lines(ex_1_data$Time,function_ex_1(ex_1_data$Time),col="red")
 ```
 
-It can be seen from Figure \@ref(fig:plotfitex1) that this method of finding the coefficients of a functional data object has a few drawbacks. This method does not adjust assume that there is any error in the observations and tends to overfit the data as it only minimises the differences between the estimated function and the observed data. This method also tends to give very unstable estimates of the derivatives of the curves near the boundaries of other data  which is not useful as one of the advantages of functional data analysis is that it allows for analysis of the derivatives of the functional aspects of the data. 
+It can be seen from Figure \@ref(fig:plotfitex1) that this method of finding the coefficients of a functional data object has a few drawbacks. This method assumes that there is no error in the observations and thus overfits the data as it only minimises the differences between the estimated function and the observed data (this is often refered to in literature as the function being too rough). This method also tends to give very unstable estimates of the derivatives of the curves near the boundaries of other data  which is not useful as one of the advantages of functional data analysis is that it allows for analysis of the derivatives of the functional aspects of the data. 
 
 ### Smoothing using a Roughness Penalty
 
-The generally preferred method of finding the coefficients for a functional data object is smoothing using a roughness penalty. This method is similar to that used in smoothing using regression analysis in that it uses a the sum of squared errors. However, this method adds a roughness penalty to this sum of squared errors in order to stop the functional data object from over fitting to the data. The sum of squared errors with the new roughness penalty term, denoted by $F(\boldsymbol{c})$, is shown in Equation \@ref(eq:defofF).
+The generally preferred method of finding the coefficients for a functional data object is smoothing using a roughness penalty. This method is similar to that used in smoothing using regression analysis in that it uses a the sum of squared errors. However, this method adds a roughness penalty to this sum of squared errors in order to stop the functional data object from over fitting the observed data. The sum of squared errors with the new roughness penalty term, denoted by $F(\boldsymbol{c})$, is shown in Equation \@ref(eq:defofF).
 
 \begin{equation}
   F(f)=\sum_j[Y_j-f(t_j)]^2+\lambda\int_{t_0}^{t_1}[Lf(t)]^2dt
@@ -410,29 +405,40 @@ Remembering that the most desirable set of coefficients, $\boldsymbol{c}$, will 
 
 #### Choosing an Appropriate Smoothing Parameter $\lambda$
 
-The generalized cross-validation (GCV) criteria was developed by Craven P. and G. Wahba (@GCV_ref) to assist in finding the most appropriate value of $\lambda$ to use in smoothing using a roughness penalty. The need for this is clear as choosing a $\lambda$ close to $0$ means that $F(\boldsymbol{c})$ becomes the SSE used to find the coefficient for regression smoothing without a roughness penalty however if the $\lambda$ chosen is too large the estimated function will approach a straight line.  \par 
+The generalized cross-validation (GCV) criteria was developed by Craven P. and G. Wahba (@GCV_ref) to assist in finding the most appropriate value of $\lambda$ to use in smoothing using a roughness penalty. The need for this is clear as choosing a $\lambda$ close to $0$ means that $F(\boldsymbol{c})$ becomes the SSE used to find the coefficient for regression smoothing without a roughness penalty however if the $\lambda$ chosen is too large the estimated function will typically approach a straight line.  \par 
 
 The GCV for choosing the smoothing parameter $\lambda$ is defined as shown in Equation \@ref(eq:GCV) :
 
 \begin{equation}
-  GCV(\lambda)=(\frac{n}{n-df(\lambda)})(\frac{SSE}{n-df(\lambda)})
+  GCV(\lambda)= \left( \frac{n}{n-df(\lambda)} \right) \left( \frac{SSE}{n-df(\lambda)} \right)
   (\#eq:GCV)
 \end{equation}
 
-where the SSE is defined as in the [Regression Smoothing] section, the degrees of freedom for a particular functional data object are defined as the trace of the matrix $\boldsymbol{H}$ which is defined in the next paragraph and $n$ is the number of observations in the non-functional data used to estimate the function. \par
+where the SSE is defined as in the [Regression Smoothing] section, $df(\lambda)$ is the degrees of freedom for the function fitted to the data object using the $\lambda$ specified and $n$ is the number of observations in the non-functional data points used to estimate the function. The degrees of freedom of the fit of an observation of functional data are as defined in page 65 of @fda_in_R_book. \par
 
+The value of $\lambda$ that gives the lowest GCV is the most preferable. The GCV produced by a certain value of $\lambda$ can be found by accessing the GCV argument of the functional data object created in R. 
 
-```{r}
+To fit a function to non-functional data using regression smoothing using a roughness penalty in R the `smooth.basis` function is again used. To perform regression smoothing using a roughness penalty with this function similar arguments are passed to the `smooth.basis` function. The first two arguments are the same as  regression smoothing without a roughness penalty, being the time points of the observations along with the observations. The third argument is different from regression smoothing. The third argument should be an `fdPar` object defined using the `fdPar` function in the `fda` package. The `fdPar` object can be thought of as supplying the `smooth.basis` function with the linear differential operator, basis functions and the value of lambda that should be used in the regression smoothing. The `fdPar` object can either take a linear differential operator defined through the method contained within the `fda` package or can take a single number. Supplying a single number to the `fdPar` function to define the linear differential operator defines the linear differential operator to be the derivative of the function corresponding to that number, e.g. if the number 2 is given then the second derivative of the function is used as the linear differential operator. 
 
-### YOU ARE HERE ###
- 
+For Example 1, the derivatives of the function are not required so the standard linear differential operator, $D^2$, will be used in smoothing. An example of a possible function fit to the data in  Example 1 is given below. The value of lambda used was chosen randomly. 
+
+```{r example fdPar,echo=TRUE}
+
+lambda <- 10^-4
+  
+fd_par_obj_ex_1 <- fdPar(basis_ex_1,2,lambda)
+
+ex_1_smooth_basis_rough_pen <- smooth.basis(ex_1_data$Time,ex_1_data$Y,fd_par_obj_ex_1)
+
+ex_1_functional_observation <- ex_1_smooth_basis_rough_pen$fd
+
 ```
 
+The first argument given to `fdPar` is the set of basis functions to be used, the second is the linear differential operator and the final is the chosen lambda. 
 
+This is not the optimal lambda that minimises the $GCV$ function. To find this lambda many functions must be fit to the data using different values of lambda and the GCV's of these must be compared. This comparison can either be done graphically or computationally. To conduct this method computationally a function must be created that takes lambda as an input and outputs the GCV of the function fitted using that lambda. This function for this method of smoothing is given below. 
 
-The value of $\lambda$ that gives the lowest GCV is the most preferable. The GCV produced by a certain value of $\lambda$ can be found by accessing the GCV argument of a functional data object in R. An example of how to do this for our example is shown below. 
-
-```{r finding lambda optimisiation}
+```{r finding GCV function,echo=TRUE}
 
 GCV_func <- function(log_lambda,basis,observations,time_points,penalty){
   
@@ -445,7 +451,18 @@ GCV_func <- function(log_lambda,basis,observations,time_points,penalty){
   return(sum(smoothbasisobj$gcv))
 }
 
-optimised_function <- optimise(GCV_func,lower=0,upper=10,basis=basis_ex_1,observations=ex_1_data$Y,time_points=ex_1_data$Time,penalty=2)
+```
+
+It can be seen that this function fits a function to the observed data which is input using the linear differential operator, basis functions and lambda that are also input to the function and outputs the GCV of this function. This function takes the log of lambda as an input instead of lambda. This is because the behaviour of the GCV as a function of lambda can often have steep inclines making the optimisation challenging computationally. Taking the log of lambda flattens out these steep inclines so that the estimate of lambda used can be more accurate. This function can then be optimised using the `optimise` function found in base `R` and the minimising value of log lambda can be extracted. This process of finding the lambda which minimises the GCV is shown for Example 1 below. 
+
+```{r minimise for lambda,echo=TRUE}
+
+optimised_function <- optimise(GCV_func,
+                               lower=-4,upper=4,
+                               basis=basis_ex_1,
+                               observations=ex_1_data$Y,
+                               time_points=ex_1_data$Time,
+                               penalty=2)
 
 minimum_log_lambda <- optimised_function$minimum
 
@@ -453,14 +470,14 @@ minimum_lambda <- 10^minimum_log_lambda
 
 ```
 
+The lower and upper values of the call to this function specify the range of log lambda that the minimum should be found over. In this case it was 1 to 10. The quickest way to assess the range that is needed to be looked at is plotting some values of the GCV function graphically. An example of how to create a data frame which stores many values of the GCV along with their associated log lambda is given below.
 
-```{r graphically optimise for lambda}
 
-loglambda <- seq(-6,6,0.25)
+```{r graphically optimise for lambda,echo=TRUE}
+
+loglambda <- seq(-4,4,0.25)
 
 list_of_gcvs <- c()
-
-list_of_dfs <- c()
 
 for (log_lam in loglambda){
   
@@ -471,56 +488,60 @@ for (log_lam in loglambda){
   smoothbasisobj <- smooth.basis(ex_1_data$Time,ex_1_data$Y,fd_par_obj)
   
   list_of_gcvs <- c(list_of_gcvs,sum(smoothbasisobj$gcv))
-  
-  list_of_dfs <- c(list_of_dfs,fd_par_obj$df)
-  
+
 }
-```
 
-
-```{r lambda plot}
-log_lambda_df <- data.frame(
+GCV_log_lambda_df <- data.frame(
                    loglambda=loglambda,
                    lambda=10^loglambda,
                    GCV=list_of_gcvs
                  )
 
-ggplot(log_lambda_df,aes(x=loglambda,y=GCV)) +
+```
+
+A plot of this GCV function is given in Figure \@ref(fig:lambdaplot). It can be seen from this that the minimising value of lambda is in the region of log lambda in -4 to 4 so these are input as the lower and upper boundaries of the region to be searched to find the minimum of the GCV function. 
+
+```{r lambdaplot,fig.cap="The GCV function for Example 1 with The Optimal Value of Lambda Found Computationally  Indicated By The Red"}
+
+
+ggplot(GCV_log_lambda_df,aes(x=loglambda,y=GCV)) +
   geom_point() +
   geom_line()+
-  geom_vline(xintercept = minimum_log_lambda)
+  geom_vline(xintercept = minimum_log_lambda,col="red")
 
 
 ```
 
-We can see from Figure that the minimising value of $\lambda$ is around . Getting the exact minimising value of $\lambda$ is often not necessary as it is often the case that curve of lambda vs GCV is relatively flat close to the the optimal value of $\lambda$. Therefore, many values near the optimal value will produce similar results to those given by the optimal value. \par
+Once the value of log lambda is found that minimises the GCV all components needed for smoothing are found and the process used to fit functions to the data shown above are used to get the optimal fit to the function for this method of smoothing. This is shown for Example 1 in the code below. 
 
-
-
-
-```{r fitting object}
+```{r fitting object,echo=TRUE}
 
 lambda <- minimum_lambda
 
-fd_par_obj <- fdPar(basis_ex_1,2,lambda)
+ex_1_fd_par_obj <- fdPar(basis_ex_1,2,lambda)
   
-functional_object <- smooth.basis(ex_1_data$Time,ex_1_data$Y,fd_par_obj)
-
-
-
-plot(functional_object,xlab="X",ylab="Y")
-par(new=TRUE)
-points(ex_1_data$Time,ex_1_data$Y)
-lines(ex_1_data$Time,function_ex_1(ex_1_data$Time),col="red")
-
-
-
+ex_1_functional_object <- smooth.basis(ex_1_data$Time,ex_1_data$Y,ex_1_fd_par_obj)
 
 ```
 
-```{r residuals ex 1}
+`ex_1_functional_object` now contains the estimate of the function $f_1(t)$ found through regression smoothing using a roughness penalty. The purpose of estimating functions from observed data is to analyse them, so in a typical example the object `ex_1_functional_object` would now be the functional sample with which functional data analysis would be conducted on. Example 1, however, has been used to demonstrate the effectiveness of this smoothing technique in estimating functions from data when the functions analytical form is already known. Therefore, the fit of the estimated function should be assessed.  
 
-function_ex_1 <- functional_object$fd
+
+# Assessing the Fit of An Estimated Function
+
+
+
+
+```{r ex1funcplot,echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',}
+plot(ex_1_functional_object,xlab="X",ylab="Y",ylim=c(900,1600))
+par(new=TRUE)
+points(ex_1_data$Time,ex_1_data$Y)
+lines(ex_1_data$Time,function_ex_1(ex_1_data$Time),col="red")
+```
+
+```{r residuals ex 1,echo=TRUE}
+
+function_ex_1 <- ex_1_functional_object$fd
 
 residuals <- ex_1_data$Y - as.vector(eval.fd(ex_1_data$Time,function_ex_1))
 
@@ -529,7 +550,17 @@ shapiro.test(residuals)
 ```
 
 
+# The Open Air Dataset
+
+
 # Summary Statistics of Functional Data
+
+
+
+# Functional Principal Components Analysis (fPCA)
+
+
+# Functional Regression 
 
 
 
