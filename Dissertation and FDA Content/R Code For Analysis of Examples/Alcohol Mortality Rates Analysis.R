@@ -282,7 +282,11 @@ SALSA_Fit_fda <- function(data,x_axis,response,repetitions,start_knots,min_knots
     knots <- SALSA_Fit$splineParams[[2]]$knots
     
     
-
+    #### COMPLETE THIS ####
+    
+    merged_coefs <- cbind(fd1$coefs, fd2$coefs)
+    merged_fd <- fd(coef = merged_coefs, basisobj = minutebasis)
+    is.fd(merged_fd)
     
   }
   
@@ -340,16 +344,6 @@ SALSA_knot_plot <- ggplot(mortality_rates_long,aes(x=Year,y=MortalityRate,col=Co
   geom_line(data=fit_df,aes(x=x,y=Fitted),col="purple",alpha=1,inherit.aes = FALSE) 
 
 SALSA_knot_plot
-
-
-shap_test <- function(vector){
-  
-  return(shapiro.test(vector)$p.value)
-  
-}
-
-residuals_Scotland <- fitted(SALSA_Fit)-mortality_rates_wide$Scotland
-
 
 
 
