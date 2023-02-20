@@ -46,7 +46,7 @@ To answer this question let's first think about what type of data a statistician
   (\#eq:datamatex)
 \end{equation}
 
-In this data matrix the first entry given in the top left represents patient 1's blood pressure reading (in mmHg) on day 1 after taking the drug, the entry directly below represents patients 1's blood pressure reading on day 2 and so on. 
+In this data matrix, the first entry given in the top left represents patient 1's blood pressure reading (in mmHg) on day 1 after taking the drug, the entry directly below represents patients 1's blood pressure reading on day 2 and so on. 
 
 Now consider a scenario where the number of times a patient can have their blood pressure read within the 4 days of the survey was increased to twice a day. If a patients blood pressure was checked twice a day then each row of the data matrix would then represent a reading taken every half day which would make the dimensions of the new data matrix $3 \times 8$. A statistician would be in favour of this increase in information as having access to more regular blood pressure readings would allow the statistician to strengthen their inferences about the effects the drug has on a patients blood pressure. However, the statistician would be quick to point out that this increase would lead to their analysis taking longer as more computational power is required to make inferences from this larger data set.  In today's modern era of technology it is becoming increasingly easier for machines to take measurements of various quantities at smaller and smaller increments of time. This leads to the production of massive data sets which can be difficult for even the most complex of computers to analyse. The field of functional data analysis seeks to address this issue. 
 
@@ -224,13 +224,17 @@ This understanding of knots and break points is very useful if a statistician pl
 
 ### The Dimensionality of Samples of Functional Data  
 
-One of the main advantages of functional data analysis is the potential for the reduction of dimensionality within the data used for analysis. Returning to the original blood pressure example, the original dimensionality of the data, given in the data matrix in \@ref(eq:datamatex), was that there were 4 observations of blood pressure for 3 different replication, those being each patient, overall giving 12 observations. One would assume that when the sample moves from being the observed non-functional data to the sample being 4 functions that the dimensionality of the sample would be the four functions, one function for each patient. However, this is not the best way of thinking of the dimensionality of the sample. It is better to think of each function within the sample as being defined by the coefficients of the basis functions used to estimate the functions. Typically each function within the sample will be estimated using the same basis system as the data will be similar across all replications. Consider a situation in which a B-Spline basis composed of 2 functions is used to estimate the functions which give the blood pressure of each patient at a given time. The dimensions of the sample becomes 2 coefficients for each function with a function for each of the 3 patients which gives 3 pairs of coefficients (6 coefficients overall) which define our sample. This is how working with functional data reduces the dimensionality of samples and this reduction of dimensionality allows computers to conduct analysis faster than when working with non-functional data. This main advantage of working with functional data is important to remember when deciding how many basis functions we wish to use to estimate our functions. Using more basis functions than can lead to an increase in the dimensionality of our data but using too few could lead to a bad estimation of our function. How do we choose how many basis functions to use? 
+One of the main advantages of functional data analysis is the potential for the reduction of dimensionality within the data used for analysis. Returning to the original blood pressure example, the original dimensionality of the data, given in the data matrix in \@ref(eq:datamatex), was that there were 4 observations of blood pressure for 3 different replication, those being each patient, overall giving 12 observations. One would assume that when the sample moves from being the observed non-functional data to the sample being 4 functions that the dimensionality of the sample would be the four functions, one function for each patient. However, this is not the best way of thinking of the dimensionality of the sample. It is better to think of each function within the sample as being defined by the coefficients of the basis functions used to estimate the functions. Typically each function within the sample will be estimated using the same basis system as the data will be similar across all replications. Consider a situation in which a B-Spline basis composed of 2 functions is used to estimate the functions which give the blood pressure of each patient at a given time. The dimensions of the sample becomes 2 coefficients for each function with a function for each of the 3 patients which gives 3 pairs of coefficients (6 coefficients overall) which define our sample. This is how working with functional data reduces the dimensionality of samples and this reduction of dimensionality allows computers to conduct analysis faster than when working with non-functional data. This main advantage of working with functional data is important to remember when deciding how many basis functions we wish to use to estimate our functions. Using more basis functions can lead to an increase in the dimensionality of our data but using too few could lead to a bad estimation of our function. How do we choose how many basis functions to use? 
 
 
 ### How Many Basis Functions? 
 
-It may seem intuitive to use as many basis functions as is computationally possible to estimate functions from non-functional data. Using more basis functions would allow for our basis function expansion, given in Equation \@ref(eq:ex1basisapprox), to approximate the shape of the actual function better. While this is generally the case it is not practical or necessary. Often adding more basis functions does not give the statistician any more information about the actual nature of the processes which produce the data. It can also lead to the problem of over fitting as in a practical application the function we do not know the true complexity of the function we are to estimate. The process of smoothing which will be introduced in the [Finding Coefficients] section will address this issue of over fitting and it is also part of the reason that adding more basis functions often does not produce a greater fit to the actual functions we are trying to estimate. Often it is a case of trial and error to find the number of basis functions which give the desired complexity for the data you are working with. (READ MORE INTO THIS)
+It may seem intuitive to use as many basis functions as is computationally possible to estimate functions from non-functional data. Using more basis functions would allow for our basis function expansion, given in Equation \@ref(eq:ex1basisapprox), to approximate the shape of the actual function better. While this is generally the case it is not practical or necessary. Often adding more basis functions does not give the statistician any more information about the actual nature of the processes which produce the data. It can also lead to the problem of over fitting as in a practical application the function we do not know the true complexity of the function we are to estimate. The process of smoothing which will be introduced in the [Finding Coefficients] section will address this issue of over fitting and it is also part of the reason that adding more basis functions often does not produce a greater fit to the actual functions we are trying to estimate. Often it is a case of trial and error to find the number of basis functions which give the desired complexity for the data you are working with. 
 
+&nbsp;
+&nbsp;
+
+* More reading may be needed into this not sure this captures a good understanding of how many functions to use
 
 ### Making a Set of B-Spline Basis Functions in R
 
@@ -520,55 +524,134 @@ lambda <- minimum_lambda
 
 ex_1_fd_par_obj <- fdPar(basis_ex_1,2,lambda)
   
-ex_1_functional_object <- smooth.basis(ex_1_data$Time,ex_1_data$Y,ex_1_fd_par_obj)
+ex_1_functional_object <- smooth.basis(ex_1_data$Time,ex_1_data$Y,ex_1_fd_par_obj)$fd
 
 ```
 
-`ex_1_functional_object` now contains the estimate of the function $f_1(t)$ found through regression smoothing using a roughness penalty. The purpose of estimating functions from observed data is to analyse them, so in a typical example the object `ex_1_functional_object` would now be the functional sample with which functional data analysis would be conducted on. Example 1, however, has been used to demonstrate the effectiveness of this smoothing technique in estimating functions from data when the functions analytical form is already known. Therefore, the fit of the estimated function should be assessed.  
+`ex_1_functional_object` now contains the estimate of the function $f_1(t)$ found through regression smoothing using a roughness penalty. The purpose of estimating functions from observed data is to analyse them, so in a typical example the object `ex_1_functional_object` would now be the functional sample with which functional data analysis would be conducted on. Example 1, however, has been used to demonstrate the effectiveness of this smoothing technique in estimating functions from data when the functions analytical form is already known. The function that has been estimated for this is plotted alongside the actual function, $f_1(t)$ in Figure \@ref(fig:ex1funcplot).   
 
 
-# Assessing the Fit of An Estimated Function
-
-
-
-
-```{r ex1funcplot,echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',}
+```{r ex1funcplot,echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.cap="The Function Estimated Through Regression Smoothing With a Roughness Penalty For Example 1. The Actual Function, $f_1(t)$, is Given (in Red) As Well As The Observations Used To Estimate The Function)"}
 plot(ex_1_functional_object,xlab="X",ylab="Y",ylim=c(900,1600))
 par(new=TRUE)
 points(ex_1_data$Time,ex_1_data$Y)
 lines(ex_1_data$Time,function_ex_1(ex_1_data$Time),col="red")
 ```
 
+It can be seen that the function estimated using regression smoothing with a roughness penalty is a reasonably good approximation of the function, $f_1(t)$. In a real world example, the actual function is not accessible so how would the fit of the estimated function be quantified.  
+
+
+# Assessing the Fit of An Estimated Function
+
+The assumption in estimating functional data is that the actual function is related to the observed data by the relation given in Equation \@ref(eq:functionobservedrelationship) data. It is assumed that the observation errors between the function and the observed data are i.i.d. normal random variables with constant variance. Checking this assumption is difficult (?) however this assumption does allow for an easy check of the fit of the estimated function to the data as if the estimated function estimates the actual function well then the differences between the observations and the estimated function should be i.i.d. normal random variables with constant variance. To get these residuals in R the `eval.fd` function must be used. This evaluates the functional data for input time points. To get the residuals for the function found in Example 1 the following code is used.  
+
 ```{r residuals ex 1,echo=TRUE}
 
-function_ex_1 <- ex_1_functional_object$fd
+function_est_values <- as.vector(eval.fd(ex_1_data$Time,ex_1_functional_object))
 
-residuals <- ex_1_data$Y - as.vector(eval.fd(ex_1_data$Time,function_ex_1))
+residuals <- ex_1_data$Y-function_est_values 
+
+```
+
+There are several methods for checking the assumption that the residuals are i.i.d. normal random variables with constant variance that many readers will be familiar with as this assumption is similar to that made about the residuals in standard linear regression. Not all tests of the assumptions about the residuals can be given in this dissertation. An example of a test for normality of residuals is running a Shapiro-Wilks test on the residuals. Code to do this for Example 1 along with the output of this are given below. 
+
+```{r shapiro test ex 1,echo=TRUE}
 
 shapiro.test(residuals)
 
 ```
 
+It can be seen from this output that there is no evidence to reject to the null hypothesis that the residuals of the function estimated in Example 1 are normally distributed. 
+
+
+* Possibly add some other methods of assumption checking 
+
+
 
 # The Open Air Dataset
 
+The Open Air package (@openair) can be downloaded in R from the CRAN. It allows a user access to information from several sites across the United Kingdom which monitor the concentrations of pollutants in the air near them. It is available through the `openair` package in R which can be found on the CRAN (@openair). This dataset will be used throughout the rest of this dissertation to display some of the main techniques used in functional data analysis.
 
-# Summary Statistics of Functional Data
+
+&nbsp;
+&nbsp;
+
+* Layout how to access information through importAURN and importMETA functions
+* Decide which pollutant I am interested in looking at (probably Nitrous 
+Oxides NO)
+* Decide how many sites (probably sites near St Andrews)
+* Use last years data
+* Mention the issues of working with such large data sets 
+* Extract functional data from the data set (finding challenging as such a large amount of data it takes ages to run)
+* Then move forward with these functions as an example sample for the following sections. Potentially look at what times of year have the most impact 
 
 
+
+# Summary Functions of Functional Data
+
+The process of getting a functional sample from non-functional data has now been established. This is the first step toward functional data analysis. Now that a functional sample has been obtained it is necessary to find some form of summary statistics for the sample. For a sample of non-functional data some summary statistics would include the mean of the sample or the standard deviation of the sample. For time series data such as that shown in the blood-pressure example, these summary statistics may be given for the sample of data taken on each day, e.g. the mean blood pressure of all the patients on day one may be found and then the mean blood pressure on day two etc. The concepts of a mean and standard deviation also exist for functional data in a similar way. The sample mean function of a sample of functional data is defined in Equation \@ref(eq:meansamp) for consisting of N functions, which describe the same variable over time for multiple replications. 
+
+\begin{equation}
+  \bar{x}(t)=\frac{1}{N}\sum_{i=1}^{N}x_i(t)
+  (\#eq:meansamp)
+\end{equation}
+
+As is clear from this definition, when evaluated at a time, $T$, the sample mean function returns the arithmetic mean of all of the functions in the sample evaluated at the time $T$. This is a very useful summary of the data as it can show the general trends of the variable of interest over time. The sample standard deviation function of a sample of functional data is defined in Equation \@ref(eq:sdsamp).
+
+\begin{equation}
+  s(t)=\frac{1}{N-1}\sum_{i=1}^{N}[x_i(t)-\bar{x}(t)]^2
+  (\#eq:meansamp)
+\end{equation}
+
+This functions interpretation is very similar to that of the mean function in that when the sample standard deviation function is evaluated at $T$ it returns the arithmetic standard deviation of all of the functions in the sample evaluated at the time $T$. This is also a very useful summary of the data as it shows within what regions of time most variation within the sample occurs. 
+
+
+&nbsp;
+&nbsp;
+
+* Introduce bivariate covariance function (not sure how to explain interpretation of this. Must be introduced to explain fPCA)
+
+* Introduce functional probes (having a difficult time understanding how to construct one and how to interpret them. Again needed for fPCA)
+
+* Find these summary functions for the functions found in the open air data as an example
+
+* Introduce Residual Variance-Covariance Matrix 
+ 
 
 # Functional Principal Components Analysis (fPCA)
+
+Functional Principle Components Analysis (fPCA) is similar to non-functional Principle Components Analysis (PCA). Both seek to extract the main sources of variation  from a sample and evaluate how large of an impact these sources of variation have. In PCA of non-functional data this is done by finding the eigenvalues and eigenvectors of the covariance matrix of the sample. Each eigenvector represents a component of variatiom within the data and the corresponding eigenvalue gives the amount of variation within the data this component explains. In fPCA instead of working with eigenvectors, as the sample is made up of functions not vectors, eigenfunctions are found of the bivariate variance-covariance function of the sample. 
+
+
+
+&nbsp;
+&nbsp;
+
+* Refine this section to better explain
+
+* I understand the process of finding the principal components but not how interpret them. I think I have a similar level of understanding of non-functional PCA which may be why I am struggling to interpret components. 
 
 
 # Functional Regression 
 
+* Give new example potentially for non-functional data being regressed on a functional covariate 
+
+* Open Air gives access to the wind speed and temperature near stations so probably use this as a functional covariate for the functional response which is levels of pollutant 
+
+
+
+# A Bayesian Approach to Functional Data Analysis
+
+* Need help from Nicolo in understanding 
 
 
 
 # Appendix
 
-## Derivation of A Second Order B-Spline Basis 
+These are things I have moved from main body of dissertation that I don't want to get rid of but I dont think are necessary for understanding of FDA. They need tidied up 
 
+
+## Derivation of A Second Order B-Spline Basis 
 
 To demonstrate the meaning of these terms we will look at the B-spline basis function. B-spline basis functions are defined by a recursion relation. This recursion relation states that for a B-Spline of order K+1, notated by $N_{i,k+1}(x)$ with *knot vector* $U=\{t_0,..,t_k\}$ is defined by :
 

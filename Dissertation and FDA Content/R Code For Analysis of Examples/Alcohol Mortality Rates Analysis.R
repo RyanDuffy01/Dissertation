@@ -1,16 +1,18 @@
 library(fda)
 library(tidyverse)
 
-setwd("~/Dissertation/FDA-Dissertation/Datasets for Examples")
+setwd("~/Dissertation/Dissertation and FDA Content/Datasets for Examples")
 
+#### Load Data ####
 
 mortality_rates_wide <- read_csv("Alcohol Mortality Rates Per Country.csv", skip = 6)
 mortality_rates_long <- pivot_longer(mortality_rates_wide,values_to="MortalityRate",cols=2:5,names_to = "Country")
 
 
 ggplot(mortality_rates_long,aes(x=Year,y=MortalityRate,col=Country))+
-  geom_line()+
+  geom_point()+
   ylab("Age-standardised death rates per 100,000 people")
+
 
 Years <- unique(mortality_rates_long$Year)
 
@@ -20,9 +22,7 @@ basis_mortality_rates <- create.bspline.basis(range(Years),
                                    norder=4)
 
 
-observation_matrix <- as.matrix(mortality_rates_wide[,c(-1)])
-
-
+observation_matrix <- data.matrix(mortality_rates_wide[,c(-1)])
 
 
 
@@ -52,11 +52,39 @@ sample_of_functions$fdnames$time <- Years
 sample_of_functions$fdnames$values <- "Mortality Rate"
 
 
+year_mesh <- seq(2001,2020,0.01)
+
+
+
+eval_df <- as.data.frame(eval.fd(year_mesh,sample_of_functions)) %>%
+  mutate(Year=year_mesh)
+
+eval_df_long <- pivot_longer(eval_df,names_to = "Country",values_to = "MortalityRate",cols=1:4)
 
 par(mfrow=c(1,1))
 
 # gives visualisation of sample of functions
-plot(sample_of_functions)
+
+ggplot(eval_df_long,aes(x=Year,y=MortalityRate,col=Country))+
+  geom_line()+
+  geom_point(data=mortality_rates_long,aes(x=Year,y=MortalityRate,col=Country),inherit.aes = FALSE,alpha=0.2)+
+  ylab("Age-standardised death rates per 100,000 people")
+
+
+#### Checking Residuals #### 
+
+shap_test <- function(vector){
+  
+  shapiro.test(vector)$p.value
+  
+}
+
+residuals_matrix <- eval.fd(Years,sample_of_functions)-observation_matrix
+
+apply(t(residuals_matrix),1,shap_test)
+
+
+#### Summary Functions ####
 
 #gives visualisation of the mean of this sample
 plot(mean.fd(sample_of_functions),ylim=c(8,30),col="black",lwd=2)
@@ -66,10 +94,97 @@ lines(sample_of_functions)
 plot(sd.fd(sample_of_functions))
 
 
+#### fPCA of Data ####
+
 principle_components_of_sample <- pca.fd(sample_of_functions)
 
+func_eval <- eval.fd(year_mesh,principle_components_of_sample$harmonics)
 
-principle_components_of_sample$varprop
+
+PC_DF <- data.frame(
+  Year = year_mesh,
+  PC_1 = func_eval[,1],
+  PC_2 = func_eval[,2]
+)
+
+ggplot(PC_DF,aes(x=Year,y=PC_1))+
+  geom_line() +
+  ylab("Principal Component Function 1")
+
+ggplot(PC_DF,aes(x=Year,y=PC_2))+
+  geom_line()
+
+
+scores_df <- data.frame(
+  PC_1 = principle_components_of_sample$scores[,1],
+  PC_2 = principle_components_of_sample$scores[,2],
+  Country=colnames(observation_matrix)
+)
+
+ggplot(scores_df,aes(x=PC_1,y=PC_2,label=Country))+
+  geom_point()+
+  geom_text(hjust = 0, nudge_x = 1)+
+  xlim(c(-25,45)) +
+  xlab("Score of Principle Component 1") + 
+  ylab("Score of Principle Component 2")
+
+
+#### PC of Derivatives ####
+
+derivs <- deriv.fd(sample_of_functions,Lfdobj = 2) 
+
+eval_df_derivs <- as.data.frame(eval.fd(year_mesh,derivs)) %>%
+  mutate(Year=year_mesh)
+
+eval_df_derivs_long <- pivot_longer(eval_df_derivs,names_to = "Country",values_to = "MortalityRate",cols=1:4)
+
+
+# gives visualisation of sample of functions
+
+ggplot(eval_df_derivs_long,aes(x=Year,y=MortalityRate,col=Country))+
+  geom_line()+
+  ylab("Change in Age-standardised death rates per 100,000 people")
+
+
+principle_components_of_derivs <- pca.fd(derivs)
+
+func_eval_derivs <- eval.fd(year_mesh,principle_components_of_derivs$harmonics)
+
+
+PC_DF_derivs <- data.frame(
+  Year = year_mesh,
+  PC_1 = func_eval_derivs[,1],
+  PC_2 = func_eval_derivs[,2]
+)
+
+ggplot(PC_DF_derivs,aes(x=Year,y=PC_1))+
+  geom_line() +
+  ylab("Principal Component Function 1")
+
+ggplot(PC_DF_derivs,aes(x=Year,y=PC_2))+
+  geom_line()
+
+
+scores_df_derivs <- data.frame(
+  PC_1 = principle_components_of_sample$scores[,1],
+  PC_2 = principle_components_of_sample$scores[,2],
+  Country=colnames(observation_matrix)
+)
+
+ggplot(scores_df_derivs,aes(x=PC_1,y=PC_2,label=Country))+
+  geom_point()+
+  geom_text(hjust = 0, nudge_x = 1)+
+  xlim(c(-25,45)) +
+  xlab("Score of Principle Component 1") + 
+  ylab("Score of Principle Component 2")
+
+
+
+
+
+
+
+
 
 
 
@@ -122,3 +237,127 @@ ggplot(log_lambda_df,aes(x=loglambda,y=GCV)) +
   geom_vline(xintercept = minimum_log_lambda)
 
 
+
+#### SALSA #### 
+
+
+SALSA_Fit_fda <- function(data,x_axis,response,repetitions,start_knots,min_knots,max_knots,degree,maxIter,gaps){
+  
+  rep_dims <-  data %>%
+    dplyr::select({{repetitions}}) %>%
+    t() %>%
+    as.vector() %>%
+    unique()
+  
+  list_of_knots <- list()
+  
+  for (i in 1:length(rep_dims)){
+    
+    dim <- rep_dims[i]
+    
+    data_SALSA <- data %>%
+      rename("response"={{response}}) %>%
+      filter({{repetitions}} == dim)
+    
+    initialModel <- glm(response ~ 1, data=data_SALSA)
+    
+    varList <- c(deparse(substitute(x_axis)))
+    
+    SALSA1DList <- list(fitnessMeasure="BIC", 
+                        minKnots_1d=min_knots, maxKnots_1d=max_knots, 
+                        startKnots_1d=start_knots, degree=degree, 
+                        maxIterations=maxIter, gaps=gaps)
+    
+    # Run SALSA
+    SALSA <- MRSea::runSALSA1D(initialModel=initialModel, 
+                               salsa1dlist=SALSA1DList, 
+                               varlist=varList, 
+                               factorlist=NULL,
+                               datain=data_SALSA,
+                               splineParams=NULL,
+                               suppress.printout=TRUE)
+    
+    SALSA_Fit <- SALSA$bestModel
+    
+    knots <- SALSA_Fit$splineParams[[2]]$knots
+    
+    
+
+    
+  }
+  
+  
+  
+  return(list_of_knots)
+  
+}
+
+
+SALSA_Fit_fda(mortality_rates_long,
+              Year,
+              MortalityRate,
+              Country,
+              1,
+              1,
+              30,
+              3,
+              30,
+              1)
+
+
+
+data <- mortality_rates_long %>%
+  rename("response"=MortalityRate) %>%
+  filter(Country=="Scotland")
+
+initialModel <- glm(response ~ 1, data=data)
+
+varList <- c("Year")
+SALSA1DList <- list(fitnessMeasure="BIC", 
+                    minKnots_1d=0, maxKnots_1d=length(Years), 
+                    startKnots_1d=1, degree=3, 
+                    maxIterations=30, gaps=0)
+
+# Run SALSA
+SALSA <- MRSea::runSALSA1D(initialModel=initialModel, 
+                           salsa1dlist=SALSA1DList, 
+                           varlist=varList, 
+                           factorlist=NULL,
+                           datain=data,
+                           splineParams=NULL,
+                           suppress.printout=TRUE)
+
+
+str(SALSA$bestModel)
+
+
+
+fit_df <- data.frame(x=year_mesh,Fitted=predict(object=SALSA_Fit,newdata=data.frame(Year=year_mesh)))
+
+SALSA_knot_plot <- ggplot(mortality_rates_long,aes(x=Year,y=MortalityRate,col=Country))+
+  geom_point()+
+  ylab("Age-standardised death rates per 100,000 people") + 
+  geom_line(data=fit_df,aes(x=x,y=Fitted),col="purple",alpha=1,inherit.aes = FALSE) 
+
+SALSA_knot_plot
+
+
+shap_test <- function(vector){
+  
+  return(shapiro.test(vector)$p.value)
+  
+}
+
+residuals_Scotland <- fitted(SALSA_Fit)-mortality_rates_wide$Scotland
+
+
+
+
+
+
+
+
+
+  
+  
+  
