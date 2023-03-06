@@ -81,7 +81,7 @@ GCV_func <- function(log_lambda,basis,observations,time_points,penalty){
 }
 
 
-## Functions Fitted Omitting NAs 
+#### Functions Fitted Omitting NAs ####
 
 #creates B-Spline basis of order 7 with 60 basis functions
 
@@ -109,7 +109,7 @@ fd_par_obj_no_NAs <- fdPar(basis_no_NAs,2,minimum_lambda_no_NAs)
 sample_of_functions_no_NAs <- smooth.basis(time_points_no_NAs,obs_matrix_no_NAs,fd_par_obj_no_NAs)
 
 
-#### Plots of Sample of Functions NAs Removed
+#### Plots of Sample of Functions NAs Removed ####
 
 estimated_data <- as.data.frame(eval.fd(time_points,sample_of_functions_no_NAs$fd)) %>%
   mutate(date=data_wider$date) %>%
@@ -160,7 +160,7 @@ obs_matrix_NAs_filled <- as.matrix(data_wider_NAs_filled %>% dplyr::select(-c(da
 
 
 
-#### Functions Fitted With NAs replaced
+#### Functions Fitted With NAs replaced ####
 
 # creates basis
 
@@ -184,7 +184,7 @@ fd_par_obj <- fdPar(basis,2,minimum_lambda)
 sample_of_functions <- smooth.basis(time_points,obs_matrix_NAs_filled,fd_par_obj)
 
 
-#### Plots of Sample of Functions NAs Removed
+#### Plots of Sample of Functions NAs Removed ####
 
 estimated_data_NAs_filled <- as.data.frame(eval.fd(time_points,sample_of_functions_no_NAs$fd)) %>%
   mutate(date=data_wider_NAs_filled$date) %>%

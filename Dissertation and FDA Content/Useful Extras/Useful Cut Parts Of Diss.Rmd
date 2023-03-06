@@ -1,0 +1,22 @@
+---
+title: "Potentially Useful Info"
+author: '190005680'
+date: "2023-03-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+These age standardized death rates are calculated using the using the equation given in Equation \@ref(eq:ESP)
+
+\begin{equation}
+  Age \; Standardized \; Rate = \frac{\sum_{k}P_km_k}{\sum_{k}P_k}
+  (\#eq:ESP)
+\end{equation}
+
+where $P_k$ is the standard population in age group $k$ and $m_k$ is the observed mortality rate (deaths per 100,000 persons) in age group $k$. This standard population is hypothetical. 
+
