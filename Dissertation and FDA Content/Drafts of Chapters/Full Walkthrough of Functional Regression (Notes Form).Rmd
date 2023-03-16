@@ -1,0 +1,635 @@
+---
+title: "Complete Walk Through Functional Regression (Open-Air)"
+author: 'Ryan Duffy'
+date: "2023-03-15"
+output:  
+  bookdown::html_document2
+---
+
+```{r setup,include=FALSE}
+
+library(openair)
+library(tidyverse)
+library(fda)
+library(maptools)
+library(lubridate)
+library(matlib)
+
+```
+
+# Initial Data 
+
+The initial data I start off with is readings of the levels of nitrous oxide in the air over time for all of the stations included in the AURN in Scotland which measure readings of PM2.5. THe SIMD 2020 was calculated using data from 2019 so going to use information from 2019
+
+```{r data}
+
+#gets data for scottish sites 
+scottish_site_codes <- importMeta(source = "aurn",all=TRUE) %>% 
+  
+  #Filters For Scottish Sights
+  filter(str_detect(zone, paste(c("Scottish","Highland","Scotland"), collapse = "|"))) %>%
+  
+  #Filters For Sites With Start Date less than 2018 and That are still measuring
+  filter(year(start_date) < 2019 & end_date=="ongoing") %>%
+  
+  # Filters For Sites Measuring PM2.5
+  filter(variable == "PM2.5") %>% 
+  
+  dplyr::select(code) %>%
+  unique() %>% t() %>% as.vector()
+
+# imports data for scottish stations for 2018 to 2022
+raw_data <- importAURN(
+  
+  site=scottish_site_codes,
+  year=2019,
+  pollutant="pm2.5",
+  data_type="daily"
+  
+)
+
+
+
+```
+
+Now that I have my raw data I want to visualise it. 
+
+
+```{r visdata}
+
+data_pm2.5 <- raw_data %>%
+  dplyr::select(date,site,pm2.5) %>%
+  #converts negative values to 0
+  mutate(pm2.5=replace(pm2.5,pm2.5<0,0))
+
+
+# Plots NOx emissions over time for each station 
+ggplot(data_pm2.5,aes(x=date,y=pm2.5,col=site))+
+  geom_line()+
+  facet_wrap(~site)
+
+```
+
+* Can see that there are some NA observations. There is a substantial enough amount of them that they need filled. Lets create a new dataset with NAs removed.  
+
+* Lets see how many NAs we have for each station 
+
+```{r }
+
+data_pm2.5_wide <- pivot_wider(data = data_pm2.5,names_from = "site",values_from = "pm2.5")
+
+colSums(is.na(data_pm2.5_wide))
+```
+
+* Inverness has the most. 
+* Want to fill these. 
+* Not to many days missing so should be able to still fit function pretty accurately for every station 
+* Lets filter out data so it is only the data for stations with NAs
+
+```{r statswithnas}
+
+stations_with_NAs <- names(colSums(is.na(data_pm2.5_wide))[which(colSums(is.na(data_pm2.5_wide)) >0)])
+
+stat_NA_data <- data_pm2.5 %>% filter(site %in% stations_with_NAs)
+
+```
+
+
+* Basis of FDA is that there is some function which produces observations 
+* We want to estimate this function
+* We do not need all observations from every single time point to fit a function 
+* We can backfill missing data for some stations by fitting functions to our observed data with time points with NAs for at least one station removed. 
+* If this function is determined to fit well then this can be taken as estimate of our function. 
+* Can then refit our function using these new values to get estimates for stations which do not have values for these time points with NAs
+* So lets fit function the function to our data 
+
+
+First need a set of basis functions. Remember assumption is:
+
+\begin{equation}
+  Y_i =  \sum_{i=1}^Kc_i\phi_i(t) + \epsilon_i = \boldsymbol{c\phi(t)'}+ \epsilon_i = \boldsymbol{c'\phi(t)} + \epsilon_i
+  (\#eq:obstofunc)
+\end{equation}
+
+In this $\epsilon_i \sim N(0,\sigma^2)$ and are iid. Since $\sum_{i=1}^Kc_i\phi_i(t)$ is not a random variable this means that $Y_i\sim N(f(t),\sigma^2)$ and they are also assumed to be iid. We will check this assumption later.
+
+
+* Going to use B-Spline basis to estimate 
+* B-Spline functions estimate non-periodic data
+* Too many data points so cant use smoothing splines (1 knot at each data point)
+* Therefore using penalised regression splines
+* Going to use 70 basis functions on an evenly spaced grid 
+
+* I first need to convert time into a format readable by fda package in order to create B-Splines
+* (Numeric form gives the number of seconds that have passed between your date and 1/1/1970)
+* Then going to squish into a 0 to 1 range and store info to convert back 
+* Called normalisation, Subtract minimum and divide by range.
+
+```{r} 
+
+obs_times_for_funcs <-  as.numeric(data_pm2.5_wide$date)
+
+min_time <- min(obs_times_for_funcs) 
+range_time <- abs(diff(range(obs_times_for_funcs)))
+
+time_to_use <- function(vector){
+  
+  times <- as.numeric(vector)
+  
+  return((times-min_time)/range_time)
+  
+}
+
+use_to_time <- function(vector){
+  
+  times <- (vector*range_time)+min_time
+  
+  return(as.Date(times/60/60/24,origin=origin))
+  
+}
+
+```
+
+* Then have to store all observed time points in both our original and no NAs data. 
+* We will use these to find the range we need our functions to be fitted over and we will also them later.
+* We want our functions to be defined over domain of all observed data so we can predict from it for these values
+* We can then create our basis using fda package
+* Also helpful to extract sites at this point
+
+```{r}
+
+obs_times <-  time_to_use(data_pm2.5_wide$date)
+
+sites <- unique(data_pm2.5$site)
+
+basis_pm2.5 <- create.bspline.basis(range(obs_times),nbasis = 70,norder=4)
+
+```
+
+* We now want to check assumptions we have made up to this point before we try fit our functions using this basis
+* Our first assumption is that all errors and therefore observation are time independent in \@ref(eq:obstofunc). 
+* Lets check this by looking at an ACF Plot for each station
+
+```{r}
+
+station_1_data <- data_pm2.5 %>%
+  filter(site==sites[1]) %>%
+  arrange(date)
+
+acf(station_1_data$pm2.5,na.action = na.pass)
+
+```
+
+* It seems that this assumption of independence does not hold. 
+* This can be addressed however using a weighting matrix (get onto in a sec)
+
+* Need to find coefficients
+* Use smoothing
+* When residuals are assumed to be independent we want to minimise \@ref(eq:defofF)
+* Use second derivative to penalise wigglyness 
+
+\begin{equation}
+  F(f)=\sum_j[Y_j-f(t_j)]^2+\lambda\int_{t_0}^{t_1}[f''(t)]^2dt 
+  (\#eq:defofF)
+\end{equation}
+
+* Using basis expansion and converting to vectors and matrice form  (taken from Ramsey Book chapter 5): 
+
+\begin{align}
+   F(f) &= (\boldsymbol{Y}-\boldsymbol{\phi c^T})(\boldsymbol{Y}-\boldsymbol{\phi c'})^T+\lambda\int_{t_0}^{t_1}[\boldsymbol{c\phi(t)^T}]''^2dt \\
+   F(f) &= (\boldsymbol{Y}-\boldsymbol{\phi c^T})(\boldsymbol{Y}-\boldsymbol{\phi c'})'+\lambda\boldsymbol{c}^T\int_{t_0}^{t_1}\boldsymbol{\phi''(t)}\boldsymbol{\phi''(t)^T}dt \boldsymbol{c} \\
+   F(f) &= (\boldsymbol{Y}-\boldsymbol{\phi c^T})(\boldsymbol{Y}-\boldsymbol{\phi c^T})'+\lambda\boldsymbol{c}^T\boldsymbol{R} \boldsymbol{c}
+\end{align}
+
+* If we want to allow our errors in observations (and therefore our observations) to be correlated we can use a weighting matrix. 
+
+* Weighting matrix is the inverse of the residual variance covariance matrix (Ramsay Chapter 4) e.g.  
+
+\begin{equation}
+$\boldsymbol{W}=\Sigma_{\epsilon}^{-1}$
+\end{equation}
+
+* Variance covariance matrix is similiar to that for GEEs.
+* I'm going to use an AR1 Structure for residuals e.g. residuals decay for each station further they are from each other as this is what I would expect from obsrvations (some good reasons this may not hold which will address in discussion)
+
+* Looks like:
+
+\begin{bmatrix}
+1 & \rho & \rho^2 & ... & \rho^{n-1} \\
+\rho & 1 & \rho & ... & \rho^{n-2} \\ 
+... & ... & ... & ... & ... 
+\rho^{n-1} & \rho{n-2} & ... & 1 \\
+\end{bmatrix}
+
+* Want to fit each function individually so each can have a different AR correlation estimate and lambda estimate.  
+* Need to create AR(1) variance covariance matrix so I can find W 
+* This function creates an AR(1) covariance matrix
+
+```{r AR1 matrix creator}
+
+ar1_cor <- function(n, rho) {
+exponent <- abs(matrix(1:n - 1, nrow = n, ncol = n, byrow = TRUE) - 
+    (1:n - 1))
+rho^exponent
+}
+
+```
+
+* Now just need to estimate our $\rho$, known as the correlation parameter. This gives the correlation between 2 observations next to each other.  
+
+* Can find this and create AR1 matrix using the acf function. 
+
+```{r acf,fig.keep=FALSE}
+
+station_1_rho <- acf(station_1_data$pm2.5,plot = FALSE,na.action = na.pass)$acf[2]
+
+AR_matrix_Station_1 <- ar1_cor(length(station_1_data$pm2.5),station_1_rho)
+
+weight_matrix_station_1 <- solve(AR_matrix_Station_1)
+
+```
+
+
+* This changes SSE to:
+
+\begin{equation}
+F(c) = (\boldsymbol{Y}-\boldsymbol{\phi c^T})\boldsymbol{W}(\boldsymbol{Y}-\boldsymbol{\phi c^T})'+\lambda\boldsymbol{c}^T\boldsymbol{R} \boldsymbol{c}
+\end{equation}
+
+* Want coefficients which minimise this
+* Take derivative and set to 0 gives us: 
+
+\begin{equation}
+\hat{c} = (\boldsymbol{\phi^T W \phi} + \lambda \boldsymbol{R})^{-1} \boldsymbol{\phi^T W Y}
+\end{equation}
+
+* This is our estimate of our coefficients which give the best fit for to our data given that our correlation structure and choice of lambda are correct.
+
+* Now ready to find coefficients. 
+* (Lambda found through GCV) 
+
+```{r individually fit functions function}
+
+# Inputs: time_points, observations matrix, basis, AR1 weighting ("Yes or No"),  
+
+fit_indiv_func <- function(time_points,obs_matrix,basis,AR1_Weighting=FALSE,penalty=2){
+  
+   GCV_func <- function(log_lambda,basis,observations,time_points,penalty,weight){
+      
+      lambda <- 10^log_lambda
+  
+      fd_par_obj <- fdPar(basis,penalty,lambda)
+  
+      smoothbasisobj <- smooth.basis(time_points,observations,fd_par_obj,wtvec = weight)
+  
+      return(sum(smoothbasisobj$gcv))
+
+  }
+  
+   AR1_mat <- function(n, rho) {
+    
+     exponent <- abs(matrix(1:n - 1, nrow = n, ncol = n, byrow = TRUE) - 
+      (1:n - 1))
+    
+     rho^exponent
+     
+    }
+  
+   rep_dims <-  colnames(obs_matrix)
+   
+   nreps <- length(rep_dims)
+   
+   for (i in 1:nreps){
+     
+     rep_i <- rep_dims[i]
+     
+     obs_i <- as.vector(t(obs_matrix[,i]))
+     
+     if (AR1_Weighting == TRUE){
+       
+       cor_coef <- acf(obs_i,plot = FALSE,na.action = na.pass)$acf[2]
+       
+       weight_matrix <- solve(AR1_mat(length(time_points),cor_coef))
+       
+       } else{
+         
+         weight_matrix <- diag(1,length(time_points)) 
+        
+       }
+     
+     # Gives columns with NAs 
+     if (sum(is.na(obs_i)) != 0){
+       
+       NA_entries <- which(is.na(obs_i))
+       weight_matrix <- weight_matrix[-NA_entries,-NA_entries]
+       times_i <- time_points[-NA_entries]
+       obs_i <- obs_i[-NA_entries]
+       
+     } else{
+       
+       times_i <- time_points
+       
+     }
+     
+     print(paste("For Replication:", rep_i, " | Number of NA Observations is:",length(time_points)-dim(weight_matrix)[1]))
+     
+     get_lambda <-  optimise(GCV_func,lower=-10,upper=10,basis=basis,
+                             observations=obs_i,time_points=times_i,penalty=penalty,weight=weight_matrix)
+      
+     min_log_lambda <- get_lambda$minimum
+      
+     min_lambda <- 10^min_log_lambda
+     
+     fd_par_obj <- fdPar(basis,2,min_lambda)
+      
+     fd_obj <- smooth.basis(times_i,obs_i,fd_par_obj)$fd
+     
+     coefs_i <- fd_obj$coefs
+      
+     colnames(coefs_i) <- rep_i
+     
+     if (i==1){
+        coefs <- coefs_i
+      } else{
+        coefs <- cbind(coefs, coefs_i)
+      }
+   }
+   
+   merged_fd <- fd(coef = coefs, basisobj =basis)
+   merged_fd$fdnames$reps <- rep_dims
+   return(merged_fd)
+}
+
+```
+
+
+* Lets fit functions
+* Have to pass FDA functions an observations matrix as opposed to a data frame of observation so must get this
+* Have written function which gets data matrix from long data 
+
+```{r obs_matrix}
+
+obs_to_matrix <- function(data,time_col,names_from,values_from){
+  
+  return(
+    data %>%
+    pivot_wider(names_from = names_from,values_from=values_from) %>%
+    dplyr::select(-{{time_col}})
+  )
+  
+}
+
+```
+
+* Lets fit functions for stations with NA values
+ 
+```{r stats na funcs}
+
+na_stats_obs_mat <- obs_to_matrix(stat_NA_data,date,"site","pm2.5")
+
+NA_stat_funcs <- fit_indiv_func(obs_times,na_stats_obs_mat,basis_pm2.5,AR1_Weighting = TRUE)
+
+```
+
+* We can see that this fits negative values for functions. This is does not make sense as they are concentrations
+* Want to work with log of counts instead in order to keep everything positive  
+* Need to replace 0s with values very close to 0 as log of 0 is undefined 
+
+
+```{r obs_matrix}
+
+na_stats_obs_mat[na_stats_obs_mat==0] <- 0.1
+
+na_stats_obs_mat_log <- log(na_stats_obs_mat)
+
+```
+
+* Then fit functions and plot
+
+```{r}
+
+log_functions_fit <- fit_indiv_func(obs_matrix = na_stats_obs_mat_log,
+                                  time_points = obs_times,penalty=2,
+                                  basis=basis_pm2.5,AR1_Weighting = TRUE)
+
+
+plot_functions_func <- function(funcs,time_grid,log=FALSE){
+  
+  number_of_sites <- length(funcs$fdnames$reps)
+
+  if (log==FALSE){
+    
+  estimated_data <- as.data.frame(eval.fd(time_grid,funcs)) %>%
+    mutate(date=time_grid) %>%
+    dplyr::select(c(number_of_sites+1,1:number_of_sites))
+
+  estimated_data_longer <- pivot_longer(estimated_data,names_to = "site",values_to = "pm2.5",cols=2:length(colnames(estimated_data)))
+
+  return(
+    
+    ggplot(estimated_data_longer,aes(x=date,y=pm2.5,col=site))+
+  geom_line()
+  
+  )
+    
+  } else{
+
+  estimated_data <- as.data.frame(exp(eval.fd(time_grid,funcs))) %>%
+    mutate(date=time_grid) %>%
+    dplyr::select(c(number_of_sites+1,1:number_of_sites))
+
+  estimated_data_longer <- pivot_longer(estimated_data,names_to = "site",values_to = "pm2.5",cols=2:length(colnames(estimated_data)))
+
+  return(
+    
+    ggplot(estimated_data_longer,aes(x=date,y=pm2.5,col=site))+
+  geom_line()
+  
+  )
+  }
+}
+
+plot_functions_func(log_functions_fit,seq(0,1,0.001),log=TRUE) + 
+  geom_point(data=stat_NA_data,aes(x=time_to_use(date),y=pm2.5,col=site),inherit.aes = FALSE,alpha=0.1) +
+  facet_wrap(~site) 
+
+```
+
+* Now to test residuals/ fit of functions? Ask Nicolo  
+
+```{r check residuals}
+
+shap_test <- function(vector){
+  
+  shapiro.test(vector)$p.value
+  
+}
+
+residuals <- na_stats_obs_mat_log-eval.fd(obs_times,log_functions_fit)
+
+apply(t(residuals),1,shap_test)
+
+
+```
+
+
+* Now have fitted functions with which we can backfill NAs
+
+* Want to backfill NAs 
+
+```{r backfill NAs}
+
+fill_data_nas <- function(data_w_nas,data_wo_nas){
+  
+  data_NAs_filled <- data_w_nas
+
+  rows_with_NAs <- rowSums(is.na(data_NAs_filled)) > 0
+  
+  for (i in which(rows_with_NAs==TRUE)){
+  
+    row_to_be_filled <- data_NAs_filled[i,]
+    
+    date_to_fill <- row_to_be_filled$date
+    
+    cols_to_be_filled <- is.na(row_to_be_filled)
+    
+    sites_to_fill <- colnames(row_to_be_filled)[cols_to_be_filled]
+    
+    for (j in 1:length(sites_to_fill)){
+      
+      value <- data_wo_nas %>%
+        filter(date==date_to_fill) %>%
+        dplyr::select(sites_to_fill[j]) %>%
+        as.numeric()
+      
+      row_to_be_filled[,colnames(row_to_be_filled) == sites_to_fill[j]] <- value 
+      
+      data_NAs_filled[i,] <- row_to_be_filled
+      
+    }
+  }
+  return(data_NAs_filled)
+  
+}
+
+estimated_data_filled <- as.data.frame(exp(eval.fd(obs_times,log_functions_fit))) %>%
+                            mutate(date=use_to_time(obs_times))
+
+data_pm2.5_filled_wide <- fill_data_nas(data_pm2.5_wide,estimated_data_filled)
+
+data_pm2.5_filled <- data_pm2.5_filled_wide %>%
+                      pivot_longer(names_to = "site",values_to = "pm2.5",cols=2:length(colnames(data_pm2.5_filled_wide))) 
+
+
+```
+
+* Now have my data with NAs filled 
+
+* Now want to refit functions using this data 
+
+```{r fit functions}
+
+obs_mat_data_filled <- obs_to_matrix(data_pm2.5_filled,time_col = date,names_from = "site",values_from = "pm2.5")
+
+obs_mat_data_filled[obs_mat_data_filled==0] <- 0.1
+
+log_obs_data_filled <- log(obs_mat_data_filled)
+
+sample_pm2.5 <- fit_indiv_func(obs_times,log_obs_data_filled,basis_pm2.5,AR1_Weighting = TRUE)
+
+plot_functions_func(sample_pm2.5,seq(0,1,0.001),log=TRUE) + 
+  geom_point(data=data_pm2.5_filled,aes(x=time_to_use(date),y=pm2.5,col=site),inherit.aes = FALSE,alpha=0.1) +
+  facet_wrap(~site) 
+
+```
+
+
+
+
+* Now Want to Do functional Regression
+
+* Need to get covariates of interest for each replication
+
+* Main one of interest is Deprivation Index 
+
+* Also want to have curves of air temp, wind speed and wind direction (get sources for each of these)
+
+
+* Need a few more covariates that are known to explain levels of PM2.5
+
+* These are meteorological variables 
+
+```{r covars}
+
+raw_data <- importAURN(
+  
+  site=scottish_site_codes,
+  year=2019,
+  meta=TRUE
+  
+  
+)
+
+obs_to_matrix <- function(data,time_col,names_from,values_from){
+  
+  return(
+    data %>%
+    pivot_wider(names_from = names_from,values_from=values_from) %>%
+    dplyr::select(-{{time_col}})
+  )
+  
+}
+
+data_nas_filled 
+
+
+
+ggplot(raw_data,aes(x=date,y=air_temp,col=site))+
+         geom_line()+
+  facet_wrap(~site)
+
+
+
+
+acf(raw_data%>%filter(site=="Glasgow High Street")%>%dplyr::select(air_temp)%>%t()%>%as.vector()%>%na.omit())
+
+
+
+
+
+
+```
+
+
+Fixes: 
+
+* Need to fix autoregressive structure for NAs removed data 
+
+* Seems like there is some autocorrelation between later days in week but cannot seee a good reason why
+
+
+List of Assumption Made:
+
+Addressed: 
+
+
+
+
+Unaddressed: 
+
+* Errors are Normal iid 
+
+
+Limitations: 
+
+* Currently assesses autocorrelation assuming equally spaced observations but this is nit true for NAs omitted data and possibly isnt true for backfilled data
+
+
+
+
+
+
+
+
+
+

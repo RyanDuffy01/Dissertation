@@ -86,7 +86,15 @@ shap_test <- function(vector){
 
 residuals_matrix <- eval.fd(Years,sample_of_functions)-observation_matrix
 
+residuals_df <- as.data.frame(residuals_matrix) %>%
+                  mutate(Year=Years) %>%
+                  pivot_longer(cols=1:4,names_to = "Country",values_to = "Residual")
+
+
 apply(t(residuals_matrix),1,shap_test)
+
+ggplot(residuals_df,aes(x=Year,y=Residual,col=Country))+
+  geom_point()
 
 
 #### Summary Functions ####
@@ -113,13 +121,39 @@ ggplot(sd_plot_df,aes(x=Year,y=stand_dev)) +
   geom_line() + 
   ylab("Standard Deviation in Curves")
 
+var_func <- sd_func^2
+
+var_plot_df <- data.frame(Year=year_mesh,var=eval.fd(var_func,year_mesh))
+
+ggplot(var_plot_df,aes(x=Year,y=var)) +
+  geom_line() + 
+  ylab("Variation in Curves")
+
+
+var_Fd <- fda::var.fd(sample_of_functions)
+
+
+smaller_year_mesh <- seq(2001,2020,0.1)
+
+varfd_plot_df <- data.frame(
+  s=rep(smaller_year_mesh,length(smaller_year_mesh)),
+  t=rep(smaller_year_mesh,each=length(smaller_year_mesh)),
+  value=c(eval.bifd(smaller_year_mesh,smaller_year_mesh,var_Fd))
+)
+
+plotly::plot_ly(z = ~xtabs(value ~ s + t, data = varfd_plot_df)) %>% plotly::add_surface()
+
+
 
 #### fPCA of Data ####
 
-principle_components_of_sample <- pca.fd(sample_of_functions)
+fPCA_samp <- pca.fd(sample_of_functions)
 
-func_eval <- eval.fd(year_mesh,principle_components_of_sample$harmonics)
+PCs <- fPCA_samp$harmonics
 
+func_eval <- eval.fd(year_mesh,PCs)
+
+fPCA_samp
 
 PC_DF <- data.frame(
   Year = year_mesh,
@@ -130,18 +164,16 @@ PC_DF <- data.frame(
 ggplot(PC_DF,aes(x=Year,y=PC_1))+
   geom_line() +
   ylab("Principal Component Function 1")+
-  ggtitle(paste0("PC 1 - Explains ",100*principle_components_of_sample$varprop[1],"% Of Variation"))
+  ggtitle(paste0("PC 1 - Explains ", round(100*fPCA_samp$varprop[1]),"% Of Variation"))
 
 ggplot(PC_DF,aes(x=Year,y=PC_2))+
   geom_line() +
   ylab("Principal Component Function 2")+
-  ggtitle(paste0("PC 2 - Explains ",100*principle_components_of_sample$varprop[2],"% Of Variation"))
-
-
+  ggtitle(paste0("PC 2 - Explains ",round(100*fPCA_samp$varprop[2]),"% Of Variation"))
 
 scores_df <- data.frame(
-  PC_1 = principle_components_of_sample$scores[,1],
-  PC_2 = principle_components_of_sample$scores[,2],
+  PC_1 = fPCA_samp$scores[,1],
+  PC_2 = fPCA_samp$scores[,2],
   Country=colnames(observation_matrix)
 )
 
@@ -151,168 +183,6 @@ ggplot(scores_df,aes(x=PC_1,y=PC_2,label=Country))+
   xlim(c(-25,45)) +
   xlab("Score of Principle Component 1") + 
   ylab("Score of Principle Component 2")
-
-
-#### PC of Derivatives ####
-
-derivs <- deriv.fd(sample_of_functions,Lfdobj = 1) 
-
-eval_df_derivs <- as.data.frame(eval.fd(year_mesh,derivs)) %>%
-  mutate(Year=year_mesh)
-
-eval_df_derivs_long <- pivot_longer(eval_df_derivs,names_to = "Country",values_to = "MortalityRate",cols=1:4)
-
-
-# gives visualisation of sample of functions
-
-ggplot(eval_df_derivs_long,aes(x=Year,y=MortalityRate,col=Country))+
-  geom_line()+
-  ylab("Change in Age-standardised death rates per 100,000 people")
-
-
-principle_components_of_derivs <- pca.fd(derivs)
-
-func_eval_derivs <- eval.fd(year_mesh,principle_components_of_derivs$harmonics)
-
-
-PC_DF_derivs <- data.frame(
-  Year = year_mesh,
-  PC_1 = func_eval_derivs[,1],
-  PC_2 = func_eval_derivs[,2]
-)
-
-ggplot(PC_DF_derivs,aes(x=Year,y=PC_1))+
-  geom_line() +
-  ylab("Principal Component Function 1")
-
-ggplot(PC_DF_derivs,aes(x=Year,y=PC_2))+
-  geom_line()
-
-
-scores_df_derivs <- data.frame(
-  PC_1 = principle_components_of_sample$scores[,1],
-  PC_2 = principle_components_of_sample$scores[,2],
-  Country=colnames(observation_matrix)
-)
-
-ggplot(scores_df_derivs,aes(x=PC_1,y=PC_2,label=Country))+
-  geom_point()+
-  geom_text(hjust = 0, nudge_x = 1)+
-  xlim(c(-25,45)) +
-  xlab("Score of Principle Component 1") + 
-  ylab("Score of Principle Component 2")
-
-
-
-
-#### Individually Fitting Functions #### 
-
-
-fit_individ_func <- function(time_points,obs_matrix,basis){
-  
-  rep_dims <-  colnames(obs_matrix)
-  
-  for (i in 1:ncol(obs_matrix)){
-    
-    dim_i <- rep_dims[i]
-    
-    optimised_function <- optimise(GCV_func,lower=0,upper=10,basis=basis,observations=obs_matrix[,i],time_points=time_points,penalty=2)
-    
-    minimum_log_lambda <- optimised_function$minimum
-    
-    minimum_lambda <- 10^minimum_log_lambda
-    
-    fd_par_obj <- fdPar(basis,2,minimum_lambda)
-    
-    fd_obj <- smooth.basis(time_points,obs_matrix[,i],fd_par_obj)$fd
-    
-    coefs_i <- fd_obj$coefs
-    
-    colnames(coefs_i) <- dim_i
-    
-    if (i==1){
-      coefs <- coefs_i
-    } else{
-      coefs <- cbind(coefs, coefs_i)
-    }
-
-  }
-  
-  merged_fd <- fd(coef = coefs, basisobj =basis)
-  merged_fd$fdnames$reps <- rep_dims
-  
-  return(merged_fd)
-  
-}
-
-
-ind_fit_funcs <- fit_individ_func(Years,observation_matrix,basis_mortality_rates)
-
-
-eval_df_indv <- as.data.frame(eval.fd(year_mesh,ind_fit_funcs)) %>%
-  mutate(Year=year_mesh)
-
-eval_df_indv_long <- pivot_longer(eval_df_indv,names_to = "Country",values_to = "MortalityRate",cols=1:4)
-
-
-
-# gives visualisation of sample of functions
-
-ggplot(mortality_rates_long,aes(x=Year,y=MortalityRate,col=Country))+
-  geom_point()+
-  ylab("Age-standardised death rates per 100,000 people")
-
-ggplot(eval_df_indv_long,aes(x=Year,y=MortalityRate,col=Country))+
-  geom_line()+
-  geom_point(data=mortality_rates_long,aes(x=Year,y=MortalityRate,col=Country),inherit.aes = FALSE,alpha=0.2)+
-  ylab("Age-standardised death rates per 100,000 people")
-
-
-residuals_matrix <- eval.fd(Years,ind_fit_funcs)-observation_matrix
-
-apply(t(residuals_matrix),1,shap_test)
-
-
-
-#### Individually Fit Functions PCA ####
-
-
-principle_components_of_sample_ind <- pca.fd(ind_fit_funcs)
-
-func_eval_ind <- eval.fd(year_mesh,principle_components_of_sample_ind$harmonics)
-
-
-PC_DF_ind <- data.frame(
-  Year = year_mesh,
-  PC_1 = func_eval_ind[,1],
-  PC_2 = func_eval_ind[,2]
-)
-
-ggplot(PC_DF_ind,aes(x=Year,y=PC_1))+
-  geom_line() +
-  ylab("Principal Component Function 1")+
-  ggtitle(paste0("PC 1 - Explains ",100*principle_components_of_sample_ind$varprop[1],"% Of Variation"))
-
-ggplot(PC_DF_ind,aes(x=Year,y=PC_2))+
-  geom_line() +
-  ylab("Principal Component Function 2")+
-  ggtitle(paste0("PC 2 - Explains ",100*principle_components_of_sample_ind$varprop[2],"% Of Variation"))
-
-
-scores_df_ind <- data.frame(
-  PC_1 = principle_components_of_sample_ind$scores[,1],
-  PC_2 = principle_components_of_sample_ind$scores[,2],
-  Country=colnames(observation_matrix)
-)
-
-ggplot(scores_df_ind,aes(x=PC_1,y=PC_2,label=Country))+
-  geom_point()+
-  geom_text(hjust = 0, nudge_x = 1)+
-  xlim(c(-25,45)) +
-  xlab("Score of Principle Component 1") + 
-  ylab("Score of Principle Component 2")
-
-
 
 
 #### Load in Unemployment Data ####
@@ -355,7 +225,6 @@ basis_UnE <- create.bspline.basis(range(Years_UnE),
                                               breaks=Years_UnE,
                                               norder=4)
 
-
 observation_matrix_UnE <- data.matrix(All_Countries_UnE_Wide[,c(-1)])
 
 optimised_function_UnE <- optimise(GCV_func,lower=0,upper=10,basis=basis_UnE,observations=observation_matrix_UnE,time_points=Years_UnE,penalty=2)
@@ -366,8 +235,8 @@ minimum_lambda_UnE <- 10^minimum_log_lambda_UnE
 
 fd_par_obj_UnE <- fdPar(basis_UnE,2,minimum_lambda_UnE)
 
-sample_of_functions_UnE <- fit_individ_func(Years_UnE,observation_matrix_UnE,basis_UnE)
-
+sample_of_functions_UnE <- smooth.basis(Years_UnE,observation_matrix_UnE,fd_par_obj_UnE)$fd
+  
 sample_of_functions_UnE$fdnames$time <- "Years"
 
 sample_of_functions_UnE$fdnames$values <- "Unemployment Rate"
@@ -403,7 +272,6 @@ apply(t(residuals_matrix),1,shap_test)
 
 
 #### PC Analysis of Unemployment ####
-
 
 principle_components_of_sample_UnE <- pca.fd(sample_of_functions_UnE)
 
@@ -445,32 +313,89 @@ ggplot(scores_df_UnE,aes(x=PC_1,y=PC_2,label=Country))+
 
 Countries <- unique(mortality_rates_long$Country)
 
+Constant <- list(constant=rep(1,length(Countries)))
+
+Func_Covs <- list(Unemployment=sample_of_functions_UnE)
+
+all_covs <- c(Func_Covs)
+
+beta_0 <- list(constant=fd(basisobj=basis_mortality_rates,fdnames=Countries))
+beta_1 <- list(Unemployment=fd(basisobj=basis_UnE,fdnames=Countries))
+
+all_beta <-c(beta_1)
+
+regression <- fRegress(sample_of_functions,all_covs,all_beta)
+
+Beta_1_est <- regression$betaestlist$Unemployment$fd
+
+Beta_1_est$fdnames <- list(time="Years",reps=Beta_1_est$fdnames,values="Mortality Rate")
+
+Beta_1_eval <- eval.fd(year_mesh,Beta_1_est)
+
+Beta_1_est_plot_df <- data.frame(
+  
+  Year=year_mesh,
+  Beta1=Beta_1_eval[,1]
+  
+) 
+
+ggplot(Beta_1_est_plot_df,aes(x=Year,y=Beta1))+
+  geom_line()
+
+regress_ests <- regression$yhatfdobj
+
+regress_ests_eval <- eval.fd(year_mesh,regress_ests)
+
+regress_ests_eval_plot_df <- as.data.frame(regress_ests_eval) %>%
+                              mutate(Year=year_mesh) %>%
+                              pivot_longer(cols=1:4,names_to = "Country",values_to = "Regression Estimates") 
+                              
+
+ggplot(regress_ests_eval_plot_df,aes(x=Year,y=`Regression Estimates`,col=Country))+
+  geom_line()+
+  geom_line(data=eval_df_long,aes(x=Year,y=MortalityRate,col=Country),alpha=0.2)
 
 
-sample_of_functions
-sample_of_functions_UnE
+#### Regression Checking ####
+
+#### R Squared ####
+
+resid_funcs <- sample_of_functions-regress_ests
+
+resid_func_eval <- eval.fd(year_mesh,resid_funcs)
+
+resid_func_squared_eval <- resid_func_eval^2
+
+SSE0_eval <- rowSums(resid_func_squared_eval)
+
+new_mean_func_coeffs <- matrix(1,length(mean_func$coefs[,1]),length(colnames(sample_of_functions$coefs)))
+
+for (i in 1:length(colnames(sample_of_functions$coefs))){
+  
+  new_coefs <- mean_func$coefs
+  
+  new_mean_func_coeffs[,i] <- new_coefs
+  
+}
+
+colnames(new_mean_func_coeffs) <- colnames(sample_of_functions$coefs)
+
+new_mean_func <- fd(coef=new_mean_func_coeffs,basis=mean_func$basis)
+
+mean_fit_resids <- sample_of_functions-new_mean_func
+
+mean_fit_resids_eval <- eval.fd(year_mesh,mean_fit_resids)
+
+mean_fit_resids_eval_squared <- mean_fit_resids_eval^2
+  
+SSE1_eval <- rowSums(mean_fit_resids_eval_squared)  
 
 
+RSQR <- (SSE0_eval-SSE1_eval)/SSE0_eval
 
-fda::fRegress()
+ggplot(data.frame(Year=year_mesh,RSQR=RSQR),aes(x=Year,y=RSQR))+
+  geom_line()
 
-list_covariate <- list(rep(1,length(Countries)),sample_of_functions_UnE)
-
-beta_fdPar <- fdPar(basis_mortality_rates,2)
-
-beta_list <- list(beta_fdPar,beta_fdPar)
-
-functional_regression <- fRegress(sample_of_functions,list_covariate,beta_list)
-
-plot.fd(functional_regression$yhatfdobj)
-
-estimate_of_response <- functional_regression$yhatfdobj
-
-intercept <- functional_regression$betaestlist[[1]]
-
-beta <- functional_regression$betaestlist[[2]]$fd
-
-plot(beta)
 
 
 #### GCV Plot (For Interest)####
@@ -653,3 +578,57 @@ SALSA$bestModel$splineParams
   
   
   
+
+#### PC of Derivatives (No Longer in Use) ####
+
+derivs <- deriv.fd(sample_of_functions,Lfdobj = 1) 
+
+eval_df_derivs <- as.data.frame(eval.fd(year_mesh,derivs)) %>%
+  mutate(Year=year_mesh)
+
+eval_df_derivs_long <- pivot_longer(eval_df_derivs,names_to = "Country",values_to = "MortalityRate",cols=1:4)
+
+
+# gives visualisation of sample of functions
+
+ggplot(eval_df_derivs_long,aes(x=Year,y=MortalityRate,col=Country))+
+  geom_line()+
+  ylab("Change in Age-standardised death rates per 100,000 people")
+
+
+principle_components_of_derivs <- pca.fd(derivs)
+
+func_eval_derivs <- eval.fd(year_mesh,principle_components_of_derivs$harmonics)
+
+
+PC_DF_derivs <- data.frame(
+  Year = year_mesh,
+  PC_1 = func_eval_derivs[,1],
+  PC_2 = func_eval_derivs[,2]
+)
+
+ggplot(PC_DF_derivs,aes(x=Year,y=PC_1))+
+  geom_line() +
+  ylab("Principal Component Function 1")
+
+ggplot(PC_DF_derivs,aes(x=Year,y=PC_2))+
+  geom_line()
+
+
+scores_df_derivs <- data.frame(
+  PC_1 = principle_components_of_sample$scores[,1],
+  PC_2 = principle_components_of_sample$scores[,2],
+  Country=colnames(observation_matrix)
+)
+
+ggplot(scores_df_derivs,aes(x=PC_1,y=PC_2,label=Country))+
+  geom_point()+
+  geom_text(hjust = 0, nudge_x = 1)+
+  xlim(c(-25,45)) +
+  xlab("Score of Principle Component 1") + 
+  ylab("Score of Principle Component 2")
+
+
+
+
+
